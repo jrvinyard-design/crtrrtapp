@@ -1130,6 +1130,286 @@ const SAMPLE_QUESTIONS = [
       { label: "D", text: "Provide no specific guidance and simply send the patient home with the equipment", correct: false, tag: null, rationale: "Sending a frustrated, hesitant new CPAP user home without addressing their concerns or providing acclimatization guidance significantly reduces the likelihood of successful long-term adherence." },
     ],
   },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "An advance directive differs from a DNR order in that it:",
+    options: [
+      { label: "A", text: "Is a broader legal document expressing a patient's wishes for various types of medical treatment, which may include but is not limited to resuscitation preferences", correct: true, tag: null, rationale: "An advance directive is a comprehensive document covering a range of potential medical decisions (e.g., mechanical ventilation, feeding tubes, DNR status), while a DNR order is a specific, narrower medical order addressing only resuscitation in the event of arrest." },
+      { label: "B", text: "Only applies to respiratory therapy decisions specifically", correct: false, tag: null, rationale: "Advance directives are not respiratory-therapy-specific — they can address a wide range of medical decisions across specialties." },
+      { label: "C", text: "Is identical in scope to a DNR order", correct: false, tag: null, rationale: "These are distinct documents with different scopes — an advance directive is broader, while DNR is narrowly focused on resuscitation." },
+      { label: "D", text: "Can only be created by a physician, not the patient", correct: false, tag: null, rationale: "Advance directives are created by the patient (or their designated decision-maker) to express their own wishes, not authored by a physician on the patient's behalf." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a progressively rising procalcitonin level over 2 days, alongside worsening clinical signs of infection.",
+    question: "This trend is most useful for:",
+    options: [
+      { label: "A", text: "Supporting an ongoing or worsening bacterial infectious process and potentially guiding antibiotic therapy decisions", correct: true, tag: null, rationale: "Procalcitonin is a biomarker that rises with bacterial infection and is used clinically to help support infection diagnosis and guide decisions about starting, continuing, or stopping antibiotic therapy." },
+      { label: "B", text: "Diagnosing a purely viral illness", correct: false, tag: null, rationale: "Procalcitonin is more specifically associated with bacterial infection; it's typically less elevated in purely viral illness, making a rising trend more suggestive of bacterial involvement." },
+      { label: "C", text: "Assessing kidney function", correct: false, tag: null, rationale: "Procalcitonin isn't a marker of kidney function — that's assessed via creatinine, BUN, and related studies." },
+      { label: "D", text: "Measuring oxygenation status", correct: false, tag: null, rationale: "Procalcitonin has no direct relationship to oxygenation status, which is assessed through ABG or pulse oximetry." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Paradoxical abdominal movement (abdomen moving inward during inspiration) is a sign of:",
+    options: [
+      { label: "A", text: "Diaphragmatic fatigue or dysfunction", correct: true, tag: null, rationale: "Paradoxical abdominal movement occurs when the diaphragm is too fatigued or weak to contract properly, causing accessory muscles to dominate breathing and pull the abdomen inward during inspiration rather than the normal outward movement." },
+      { label: "B", text: "Normal, healthy respiratory effort", correct: false, tag: null, rationale: "This is an abnormal finding indicating respiratory muscle compromise, not normal healthy breathing mechanics." },
+      { label: "C", text: "Adequate diaphragmatic function", correct: false, tag: null, rationale: "This finding specifically indicates diaphragmatic fatigue or dysfunction, the opposite of adequate function." },
+      { label: "D", text: "A sign specific to cardiac dysfunction only", correct: false, tag: null, rationale: "This is a respiratory muscle finding specifically related to diaphragm function, not a cardiac-specific sign." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "application",
+    patient: "Adult · General",
+    stem: "An RT is performing a spontaneous breathing trial and needs to calculate the rapid shallow breathing index (RSBI) to help assess readiness for extubation.",
+    question: "The RSBI is calculated as:",
+    options: [
+      { label: "A", text: "Respiratory rate divided by tidal volume (in liters)", correct: true, tag: null, rationale: "RSBI = RR/Vt(L) — a value under 105 breaths/min/L is generally considered favorable for successful extubation, while higher values suggest a higher risk of weaning failure." },
+      { label: "B", text: "Tidal volume divided by respiratory rate", correct: false, tag: null, rationale: "This is the inverse of the correct RSBI formula." },
+      { label: "C", text: "Minute ventilation divided by PaCO2", correct: false, tag: null, rationale: "This isn't the RSBI formula — RSBI specifically uses respiratory rate and tidal volume." },
+      { label: "D", text: "PaO2 divided by FiO2", correct: false, tag: null, rationale: "This describes the P/F ratio, a different and separate index used to assess oxygenation, not the RSBI, which assesses ventilatory pattern/weaning readiness." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's RSBI is calculated at 145 breaths/min/L during a spontaneous breathing trial.",
+    question: "This value suggests:",
+    options: [
+      { label: "A", text: "A higher likelihood of weaning/extubation failure, and the trial should likely not proceed to extubation without further assessment", correct: true, tag: null, rationale: "An RSBI above 105 breaths/min/L is generally associated with a higher risk of weaning failure — this value suggests caution is warranted rather than proceeding directly to extubation." },
+      { label: "B", text: "A favorable prediction for successful extubation", correct: false, tag: null, rationale: "An RSBI this high (145) is actually associated with an INCREASED risk of extubation failure, not a favorable prediction." },
+      { label: "C", text: "No relevance to extubation readiness", correct: false, tag: null, rationale: "RSBI is specifically used as a predictive tool for extubation readiness — this value is directly relevant to that decision." },
+      { label: "D", text: "A normal, expected value requiring no further consideration", correct: false, tag: null, rationale: "This value is well above the generally accepted favorable threshold (105) and shouldn't be treated as unremarkable." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "application",
+    patient: "Adult · Suspected TB",
+    stem: "A patient with a productive cough for 3 weeks, night sweats, and unintentional weight loss has recently immigrated from a region with high tuberculosis prevalence.",
+    question: "What diagnostic workup should the RT recommend?",
+    options: [
+      { label: "A", text: "Recommend airborne precautions and sputum testing (AFB smear and culture) given the clinical presentation and risk factors for TB", correct: true, tag: null, rationale: "This presentation and risk factor profile (chronic cough, night sweats, weight loss, relevant geographic history) is classic for possible TB — airborne precautions should be initiated immediately alongside sputum AFB testing to evaluate for active disease." },
+      { label: "B", text: "Recommend standard precautions only, with no specific TB workup", correct: false, tag: null, rationale: "This presentation carries significant TB risk factors and symptoms — standard precautions alone are insufficient, and specific testing/isolation should be initiated." },
+      { label: "C", text: "Recommend routine chest X-ray only, with no sputum testing", correct: false, tag: null, rationale: "While chest imaging is part of the workup, sputum AFB testing is essential for confirming active TB and shouldn't be omitted." },
+      { label: "D", text: "Recommend no further workup since symptoms could be from a common cold", correct: false, tag: null, rationale: "Three weeks of symptoms plus systemic signs (night sweats, weight loss) and relevant risk factors go well beyond a common cold presentation and require specific TB evaluation." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A heated humidifier for a ventilator circuit shows condensation (rainout) accumulating heavily in the tubing, occasionally causing gurgling and affecting delivered volumes.",
+    question: "What is the most appropriate action?",
+    options: [
+      { label: "A", text: "Ensure proper water trap positioning and consider adjusting humidifier temperature settings to reduce excess condensation", correct: true, tag: null, rationale: "Excess rainout is a common issue with heated humidification, often addressed by ensuring water traps are positioned at the lowest point of the circuit and reassessing temperature settings — this is a routine circuit management issue with established troubleshooting steps." },
+      { label: "B", text: "Discontinue humidification entirely to solve the problem", correct: false, tag: null, rationale: "Discontinuing needed humidification isn't an appropriate solution — proper airway humidification remains important; the excess condensation should be managed through circuit troubleshooting instead." },
+      { label: "C", text: "Increase the humidifier temperature significantly to evaporate the condensation faster", correct: false, tag: null, rationale: "Increasing temperature can worsen rainout and creates risk of thermal injury to the airway — this isn't the appropriate fix for excess condensation." },
+      { label: "D", text: "Ignore the gurgling and continue without any adjustment", correct: false, tag: null, rationale: "Gurgling that's affecting delivered volumes is a functional problem that should be addressed, not ignored, since it can impact actual ventilation delivered to the patient." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "The primary purpose of a heat and moisture exchanger (HME, or \"artificial nose\") is to:",
+    options: [
+      { label: "A", text: "Capture and recycle the patient's own exhaled heat and moisture to humidify subsequent inhaled breaths", correct: true, tag: null, rationale: "An HME works passively by trapping heat and moisture from exhaled air and returning it on the next inhalation, providing humidification without the need for an external heated humidifier system." },
+      { label: "B", text: "Actively heat inspired gas using an external power source", correct: false, tag: null, rationale: "This describes an active heated humidifier system, not a passive HME, which requires no external power source and relies entirely on the patient's own exhaled heat/moisture." },
+      { label: "C", text: "Filter bacteria from the ventilator circuit exclusively, with no humidification function", correct: false, tag: null, rationale: "While some HMEs do have filtration properties, the PRIMARY purpose described in its name and function is humidification via heat/moisture exchange, not filtration alone." },
+      { label: "D", text: "Deliver aerosolized medication", correct: false, tag: null, rationale: "An HME's function is humidification, not medication delivery — in fact, some medications should not be given through a circuit with an HME in place due to potential filtration interference." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.B — Ensure Infection Prevention",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Droplet precautions are specifically appropriate for a patient with suspected:",
+    options: [
+      { label: "A", text: "Influenza", correct: true, tag: null, rationale: "Influenza is spread via larger respiratory droplets that don't remain suspended in air over distance, making droplet precautions (rather than airborne) the appropriate category." },
+      { label: "B", text: "Active pulmonary tuberculosis", correct: false, tag: null, rationale: "TB requires airborne precautions (due to small, long-suspended droplet nuclei), not droplet precautions, which are for larger, shorter-range particles." },
+      { label: "C", text: "Measles", correct: false, tag: null, rationale: "Measles is a classic airborne precaution disease due to its highly infectious, long-suspended airborne transmission, not droplet precautions." },
+      { label: "D", text: "Disseminated varicella (chickenpox)", correct: false, tag: null, rationale: "Varicella requires airborne precautions given its airborne transmission route, not droplet precautions." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.C — Perform Quality Control Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "During routine PFT equipment QC using a 3-liter calibration syringe, the spirometer consistently reads 2.7 liters across multiple attempts.",
+    question: "What is the most appropriate action?",
+    options: [
+      { label: "A", text: "Recalibrate the spirometer, since it is reading outside the acceptable accuracy tolerance for volume calibration", correct: true, tag: null, rationale: "A consistent 10% under-reading (2.7L vs the known 3.0L standard) exceeds typical acceptable calibration tolerance (usually ±3%) — the device needs recalibration before it can be trusted for patient testing." },
+      { label: "B", text: "Continue using the spirometer for patient testing without any adjustment", correct: false, tag: null, rationale: "A calibration error this significant means patient results would be inaccurate — the device needs correction before further use, not continued use as-is." },
+      { label: "C", text: "Assume the calibration syringe itself is broken without further investigation", correct: false, tag: null, rationale: "While possible, the more standard first step is recalibrating the spirometer using the known-volume syringe as the reference standard — jumping to blaming the syringe skips the standard troubleshooting sequence." },
+      { label: "D", text: "Adjust patient results after testing to compensate for the known error", correct: false, tag: null, rationale: "Manually adjusting results after the fact introduces further error risk — the correct approach is fixing the calibration issue before testing patients, not compensating afterward." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient with a tracheostomy tube in place for 3 weeks is now being assessed for potential decannulation. They tolerate capping trials well with no distress.",
+    question: "What additional factor is important to assess before proceeding with decannulation?",
+    options: [
+      { label: "A", text: "The patient's ability to manage their own secretions and protect their airway without the tracheostomy in place", correct: true, tag: null, rationale: "Beyond tolerating capping trials, successful decannulation requires confirming the patient can independently manage secretions and protect their airway — capping tolerance alone doesn't guarantee this broader airway safety requirement is met." },
+      { label: "B", text: "Only the capping trial result, with no other factors needed", correct: false, tag: null, rationale: "While capping trials are an important part of the assessment, they don't capture the full picture — secretion management and airway protection ability are also essential considerations." },
+      { label: "C", text: "The patient's personal preference alone, regardless of clinical readiness", correct: false, tag: null, rationale: "While patient preference matters in the conversation, decannulation decisions should be grounded in objective clinical readiness criteria, not preference alone." },
+      { label: "D", text: "The time of day the procedure would occur", correct: false, tag: null, rationale: "Timing is a minor logistical consideration, not a primary clinical readiness factor for decannulation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "A patient on volume control ventilation has a set tidal volume of 450 mL, but the ventilator display shows an exhaled tidal volume of 380 mL consistently across several breaths, with a stable but slightly elevated peak pressure.",
+    question: "What should the RT investigate?",
+    options: [
+      { label: "A", text: "A possible leak in the circuit or around the ET tube cuff, given the discrepancy between set and exhaled volume", correct: true, tag: null, rationale: "A persistent, meaningful gap between set and exhaled tidal volume is a classic sign of a leak somewhere in the delivery system — this should be investigated by checking the circuit connections and cuff pressure/seal." },
+      { label: "B", text: "Assume this is normal ventilator variation requiring no investigation", correct: false, tag: null, rationale: "A consistent 70 mL gap between set and exhaled volume across multiple breaths is a meaningful, persistent finding that warrants investigation, not normal breath-to-breath variation." },
+      { label: "C", text: "Increase the set tidal volume to compensate without investigating the cause", correct: false, tag: null, rationale: "Simply increasing the set volume without identifying and addressing the underlying leak treats the symptom, not the cause, and could mask a worsening leak over time." },
+      { label: "D", text: "Assume this indicates improved lung compliance", correct: false, tag: null, rationale: "A volume discrepancy between set and exhaled values relates to a leak in the delivery system, not lung compliance, which would show differently (e.g., via pressure changes at a given volume, not a volume discrepancy itself)." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Neonatal · General",
+    stem: "A neonate on conventional mechanical ventilation has a PaCO2 of 55 mmHg (goal 45-55) and PaO2 of 45 mmHg (goal 50-70) on current settings.",
+    question: "What adjustment would most directly address the low PaO2 while keeping the PaCO2 within its current acceptable range?",
+    options: [
+      { label: "A", text: "Increase mean airway pressure (e.g., via PEEP or inspiratory time) rather than adjusting rate or tidal volume", correct: true, tag: null, rationale: "Oxygenation is primarily influenced by mean airway pressure, while ventilation (CO2 clearance) is primarily influenced by minute ventilation (rate x tidal volume) — increasing mean airway pressure targets the oxygenation problem specifically without directly affecting the already-acceptable PaCO2." },
+      { label: "B", text: "Increase the respiratory rate significantly", correct: false, tag: null, rationale: "Increasing rate primarily affects ventilation/CO2 clearance, not oxygenation directly, and could push the already-acceptable PaCO2 too low." },
+      { label: "C", text: "Decrease FiO2 to improve oxygenation", correct: false, tag: null, rationale: "Decreasing FiO2 would worsen, not improve, oxygenation — this is the wrong direction for a low PaO2." },
+      { label: "D", text: "Decrease mean airway pressure", correct: false, tag: null, rationale: "Decreasing mean airway pressure would likely worsen the already-low PaO2, moving in the wrong direction for this specific problem." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Airway pressure release ventilation (APRV) is best characterized as:",
+    options: [
+      { label: "A", text: "A mode using a prolonged high-pressure phase (P-high) with brief, intermittent releases to a lower pressure (P-low) to allow ventilation, while spontaneous breathing is generally permitted throughout", correct: true, tag: null, rationale: "APRV maintains a prolonged high CPAP-like pressure for lung recruitment, with brief pressure releases providing ventilation, while allowing the patient to breathe spontaneously at any point in the cycle — a distinctly different approach from conventional cycled ventilation." },
+      { label: "B", text: "A mode identical to standard pressure control ventilation with no unique features", correct: false, tag: null, rationale: "APRV has a distinctly different pressure-time profile and philosophy (prolonged high pressure with brief releases, permitting spontaneous breathing throughout) compared to standard pressure control ventilation." },
+      { label: "C", text: "A mode used exclusively for pediatric patients", correct: false, tag: null, rationale: "APRV is used across various patient populations, particularly in certain adult ARDS management strategies, not exclusively in pediatrics." },
+      { label: "D", text: "A purely spontaneous mode with no set pressure targets", correct: false, tag: null, rationale: "APRV does have set pressure targets (P-high and P-low) — it's not a purely spontaneous, unsupported mode." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient receiving therapeutic aerosolized antibiotics via nebulizer for a resistant pulmonary infection reports increasing shortness of breath and wheeze specifically during each treatment.",
+    question: "What is the most appropriate recommendation?",
+    options: [
+      { label: "A", text: "Recommend evaluation for possible bronchospasm related to the aerosolized medication, and consider pre-treatment with a bronchodilator", correct: true, tag: null, rationale: "Some aerosolized antibiotics are known to cause treatment-related bronchospasm — recognizing this pattern and considering a pre-treatment bronchodilator is a reasonable, evidence-based approach to allow the patient to continue needed antibiotic therapy safely." },
+      { label: "B", text: "Recommend immediately and permanently discontinuing the antibiotic therapy", correct: false, tag: null, rationale: "Discontinuing an important antibiotic therapy outright, without first trying evidence-based mitigation strategies like pre-treatment bronchodilators, may not be necessary and could compromise treatment of the resistant infection." },
+      { label: "C", text: "Recommend increasing the antibiotic dose to overcome the wheeze", correct: false, tag: null, rationale: "Increasing the dose of a medication causing bronchospasm would likely worsen, not improve, the reaction." },
+      { label: "D", text: "Recommend no changes since this is expected and requires no intervention", correct: false, tag: null, rationale: "While treatment-related bronchospasm is a recognized phenomenon with some aerosolized antibiotics, it still warrants active management (like pre-treatment) rather than simply being tolerated without intervention." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A patient's respiratory care plan should generally be reassessed and potentially modified:",
+    options: [
+      { label: "A", text: "Whenever there is a significant change in the patient's clinical status, in addition to routine scheduled reassessment", correct: true, tag: null, rationale: "Respiratory care plans are dynamic and should be responsive to real clinical changes as they occur, not just reassessed on a fixed schedule regardless of the patient's evolving status." },
+      { label: "B", text: "Only at fixed 24-hour intervals regardless of clinical changes", correct: false, tag: null, rationale: "While routine reassessment intervals exist, care plans should also be responsive to significant clinical changes as they happen, not rigidly fixed to a schedule alone." },
+      { label: "C", text: "Only when specifically requested by the patient", correct: false, tag: null, rationale: "While patient input matters, reassessment should be driven by clinical indicators and professional judgment, not solely by patient request." },
+      { label: "D", text: "Never, once the initial plan is established", correct: false, tag: null, rationale: "This is inappropriate — respiratory care plans need to be dynamic and responsive to the patient's evolving clinical course, not fixed permanently at initiation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.F — Evidence-Based Practice",
+    level: "application",
+    patient: "Adult · Asthma",
+    stem: "A patient with newly diagnosed persistent asthma is being started on maintenance therapy. The care team is deciding on an initial treatment approach.",
+    question: "Which evidence-based approach aligns with current asthma management guidelines?",
+    options: [
+      { label: "A", text: "Initiate inhaled corticosteroid therapy as the foundation of persistent asthma management, with a stepwise approach based on symptom control", correct: true, tag: null, rationale: "Current asthma guidelines (NAEPP/GINA) emphasize inhaled corticosteroids as the cornerstone of persistent asthma management, with therapy stepped up or down based on ongoing symptom control assessment." },
+      { label: "B", text: "Use short-acting bronchodilators as monotherapy for persistent asthma, with no anti-inflammatory therapy", correct: false, tag: null, rationale: "SABA-only therapy is not appropriate for PERSISTENT asthma — current guidelines emphasize anti-inflammatory (ICS) therapy as foundational for this severity classification." },
+      { label: "C", text: "Use long-acting beta-agonist (LABA) monotherapy without an inhaled corticosteroid", correct: false, tag: null, rationale: "LABA monotherapy without concurrent ICS carries a black-box warning and is not recommended — LABAs should always be paired with an inhaled corticosteroid in asthma management." },
+      { label: "D", text: "Recommend no maintenance therapy, treating only acute symptoms as they arise", correct: false, tag: null, rationale: "This reactive-only approach doesn't align with evidence-based management of PERSISTENT asthma, which requires ongoing maintenance anti-inflammatory therapy to reduce underlying airway inflammation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "application",
+    patient: "Adult · General",
+    stem: "During a code (cardiac arrest) response, the RT is managing the airway with a bag-valve-mask while chest compressions are ongoing.",
+    question: "What ventilation approach is most appropriate in this scenario, prior to advanced airway placement?",
+    options: [
+      { label: "A", text: "Deliver breaths synchronized with compression pauses at the guideline-recommended compression-to-ventilation ratio (e.g., 30:2 for a single rescuer scenario, per current ACLS/BLS guidance)", correct: true, tag: null, rationale: "Prior to advanced airway placement, ventilation should be coordinated with compressions per standard resuscitation ratios to avoid interrupting compressions unnecessarily while still providing adequate ventilation." },
+      { label: "B", text: "Deliver continuous breaths regardless of compression timing, with no coordination", correct: false, tag: null, rationale: "Uncoordinated ventilation during compressions (before an advanced airway is placed) isn't standard practice and can interfere with effective compression delivery." },
+      { label: "C", text: "Withhold all ventilation until compressions are complete for the entire code", correct: false, tag: null, rationale: "Ventilation is a critical component of resuscitation and shouldn't be withheld entirely — it should be coordinated with compressions per protocol, not omitted." },
+      { label: "D", text: "Hyperventilate the patient as rapidly as possible to maximize oxygen delivery", correct: false, tag: null, rationale: "Hyperventilation during resuscitation can actually be harmful, increasing intrathoracic pressure and reducing venous return/cardiac output — guideline-based rates should be followed, not excessive hyperventilation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.H — Assist with Physician Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "The RT is assisting with a diagnostic bronchoscopy and bronchoalveolar lavage. The patient's SpO2 begins trending down during the procedure, from 96% to 89%.",
+    question: "What is the most appropriate action?",
+    options: [
+      { label: "A", text: "Alert the proceduralist to the desaturation and recommend increasing supplemental oxygen or pausing the procedure as needed", correct: true, tag: null, rationale: "Ongoing desaturation during bronchoscopy requires prompt communication with the proceduralist and appropriate intervention (oxygen escalation or procedure pause) — the RT's monitoring role is specifically to catch and respond to exactly this kind of change." },
+      { label: "B", text: "Say nothing and simply continue documenting vital signs", correct: false, tag: null, rationale: "Passive documentation without alerting the team to a clinically significant desaturation trend fails the RT's active monitoring responsibility during the procedure." },
+      { label: "C", text: "Immediately terminate the procedure without first attempting oxygen escalation or communicating with the team", correct: false, tag: null, rationale: "While escalation may ultimately be needed, the first step is typically communicating the finding and trying reasonable interventions (like increased oxygen) rather than unilaterally stopping the procedure without team input." },
+      { label: "D", text: "Assume this level of desaturation is expected and requires no action during bronchoscopy", correct: false, tag: null, rationale: "While some mild desaturation can occur during bronchoscopy, a drop to 89% is clinically significant and requires active response, not passive acceptance as an expected finding." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "When teaching a patient proper metered-dose inhaler (MDI) technique without a spacer, which instruction is most important for effective medication delivery?",
+    options: [
+      { label: "A", text: "Coordinate actuation of the inhaler with the beginning of a slow, deep inhalation", correct: true, tag: null, rationale: "Without a spacer, proper hand-breath coordination — actuating the MDI right as slow inhalation begins — is critical for effective medication deposition in the lungs rather than in the mouth/throat, which is the most common technique error patients make." },
+      { label: "B", text: "Actuate the inhaler after completing a full inhalation and holding the breath", correct: false, tag: null, rationale: "This is incorrect timing — actuation needs to coordinate with the START of inhalation, not occur afterward, for the medication to be carried effectively into the lungs." },
+      { label: "C", text: "Inhale as rapidly and forcefully as possible during actuation", correct: false, tag: null, rationale: "A slow, deep inhalation (not rapid/forceful) is recommended for optimal MDI medication deposition in the lower airways." },
+      { label: "D", text: "Hold the inhaler several inches away from a closed mouth without a spacer", correct: false, tag: null, rationale: "This describes an open-mouth technique variant which has specific, different guidance — without further spacer use, standard closed-mouth technique with proper coordination is the most commonly taught approach for reliable delivery." },
+    ],
+  },
 ];
 
 // ---- CSE branching scenario library ----
@@ -2486,9 +2766,12 @@ function Practice({ q, selected, revealed, onSelect, onNext, qNum, total }) {
         </button>
       )}
 
-      <div style={{ marginTop: 48, borderTop: "1px solid #DCD7C9", paddingTop: 20, display: "flex", alignItems: "center", gap: 8, color: "#8A8578" }}>
-        <Lock size={13} />
-        <span style={{ fontSize: 12 }}>Unlimited generated practice, adaptive weak-area targeting, and full CSE simulations are part of CRT/RRT Board Prep Plus.</span>
+      <div style={{ marginTop: 48, borderTop: "1px solid #DCD7C9", paddingTop: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#8A8578", marginBottom: 14 }}>
+          <Lock size={13} />
+          <span style={{ fontSize: 12 }}>Unlimited generated practice, adaptive weak-area targeting, and full CSE simulations are part of CRT/RRT Board Prep Plus.</span>
+        </div>
+        <UpgradeButton />
       </div>
     </main>
   );
@@ -2700,5 +2983,56 @@ function SupportChat({ open, setOpen }) {
         </div>
       )}
     </>
+  );
+}
+
+// ---- Upgrade button: triggers real Stripe Checkout via Netlify Function ----
+function UpgradeButton() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function startCheckout() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/.netlify/functions/create-checkout-session", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error || "Something went wrong starting checkout.");
+        setLoading(false);
+      }
+    } catch (e) {
+      setError("Could not reach checkout. Please try again.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        onClick={startCheckout}
+        disabled={loading}
+        style={{
+          background: "#E85D3D",
+          color: "#F7F5F0",
+          border: "none",
+          borderRadius: 3,
+          padding: "12px 24px",
+          fontSize: 14,
+          fontWeight: 700,
+          cursor: loading ? "default" : "pointer",
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? "Redirecting to checkout…" : "Upgrade to Plus — $19/mo"}
+      </button>
+      {error && (
+        <p style={{ color: "#E85D3D", fontSize: 12, marginTop: 8 }}>{error}</p>
+      )}
+    </div>
   );
 }

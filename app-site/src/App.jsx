@@ -1,7 +1,16 @@
-import React, { useState, useMemo } from "react";
-import { Activity, ChevronRight, CheckCircle2, XCircle, TrendingUp, Lock } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Activity, ChevronRight, CheckCircle2, XCircle, TrendingUp, Lock, LogOut, Mail, KeyRound } from "lucide-react";
+import { auth, db } from "./firebase.js";
+import {
+  onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 // ---- Blueprint data (subset, mirrors tmc_blueprint.json weighting) ----
+const FREE_QUESTION_LIMIT = 15;
 const DOMAINS = [
   { id: "I", name: "Patient Data", items: 50, pct: 0.357, color: "#2D8B6F" },
   { id: "II", name: "Troubleshooting & Infection Control", items: 20, pct: 0.143, color: "#C9A227" },
@@ -1410,6 +1419,1406 @@ const SAMPLE_QUESTIONS = [
       { label: "D", text: "Hold the inhaler several inches away from a closed mouth without a spacer", correct: false, tag: null, rationale: "This describes an open-mouth technique variant which has specific, different guidance — without further spacer use, standard closed-mouth technique with proper coordination is the most commonly taught approach for reliable delivery." },
     ],
   },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a rising eosinophil count over the past week, alongside a new medication started 10 days ago and no other clear infectious source identified.",
+    question: "This trend should prompt consideration of:",
+    options: [
+      { label: "A", text: "A possible drug-induced eosinophilic reaction, warranting medication review", correct: true, tag: null, rationale: "A rising eosinophil count temporally associated with a new medication, without another clear cause, raises suspicion for a drug-induced eosinophilic reaction — this should prompt review of recently started medications as a potential cause." },
+      { label: "B", text: "A routine, expected finding requiring no further consideration", correct: false, tag: null, rationale: "A new, rising eosinophil trend with a temporal medication association is not something to dismiss as routine — it warrants investigation." },
+      { label: "C", text: "Definitive proof of a parasitic infection", correct: false, tag: null, rationale: "While eosinophilia can be associated with parasitic infections, this isn't the only or most likely explanation here — the temporal medication association is a more specific clue in this context." },
+      { label: "D", text: "A normal finding unrelated to the new medication", correct: false, tag: null, rationale: "The temporal relationship between the new medication and the rising eosinophil count is clinically relevant and shouldn't be dismissed as unrelated." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A D-dimer test is most useful clinically for:",
+    options: [
+      { label: "A", text: "Helping to rule OUT venous thromboembolism (PE/DVT) when the result is negative in a low-to-moderate risk patient", correct: true, tag: null, rationale: "D-dimer has high sensitivity but low specificity — a negative result in a low-to-moderate pretest probability patient helps rule out VTE, but a positive result requires further imaging confirmation since many other conditions can also elevate D-dimer." },
+      { label: "B", text: "Definitively diagnosing pulmonary embolism on its own", correct: false, tag: null, rationale: "D-dimer alone cannot definitively diagnose PE due to its low specificity — many other conditions elevate D-dimer, so a positive result requires confirmatory imaging like CTPA." },
+      { label: "C", text: "Assessing lung volumes", correct: false, tag: null, rationale: "D-dimer is a blood test related to clot breakdown products, entirely unrelated to lung volume assessment." },
+      { label: "D", text: "Diagnosing pneumonia", correct: false, tag: null, rationale: "D-dimer isn't used for pneumonia diagnosis, which relies on clinical presentation, imaging, and other infection markers." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "application",
+    patient: "Adult · General",
+    stem: "On assessment, a patient has clubbing of the fingers noted on inspection, along with a chronic productive cough spanning several years.",
+    question: "Digital clubbing in this context is most suggestive of:",
+    options: [
+      { label: "A", text: "A chronic underlying pulmonary or cardiac condition associated with prolonged hypoxemia, such as bronchiectasis or ILD", correct: true, tag: null, rationale: "Clubbing develops over time in association with chronic hypoxemic conditions, including bronchiectasis, interstitial lung disease, and certain congenital heart defects — combined with a chronic productive cough history, this raises suspicion for a chronic suppurative or fibrotic lung process." },
+      { label: "B", text: "A normal anatomical variant with no clinical significance", correct: false, tag: null, rationale: "Clubbing is not a normal variant — it's a recognized clinical sign associated with underlying chronic disease processes and warrants further evaluation." },
+      { label: "C", text: "An acute, sudden-onset process", correct: false, tag: null, rationale: "Clubbing develops gradually over time with chronic conditions, not as a sign of an acute, sudden process." },
+      { label: "D", text: "A sign specific to asthma only", correct: false, tag: null, rationale: "Clubbing is not a typical feature of asthma — it's more associated with chronic suppurative or fibrotic conditions like bronchiectasis or ILD." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Neonatal · General",
+    stem: null,
+    question: "In a neonate, central cyanosis (involving the lips and mucous membranes) versus acrocyanosis (blue hands/feet only) is distinguished because:",
+    options: [
+      { label: "A", text: "Central cyanosis reflects true hypoxemia and requires immediate evaluation, while acrocyanosis is often a normal finding in the first hours after birth related to peripheral circulation", correct: true, tag: null, rationale: "Acrocyanosis is common and often benign in newborns due to normal peripheral vasomotor instability, while central cyanosis (affecting lips/mucous membranes) reflects true hypoxemia and requires prompt evaluation." },
+      { label: "B", text: "Both findings are equally benign and require no evaluation", correct: false, tag: null, rationale: "Central cyanosis is NOT benign — unlike acrocyanosis, it reflects true hypoxemia and requires immediate assessment." },
+      { label: "C", text: "Both findings always require immediate resuscitation", correct: false, tag: null, rationale: "Acrocyanosis alone typically does not require resuscitation, distinguishing it importantly from central cyanosis, which does warrant prompt evaluation." },
+      { label: "D", text: "There is no clinically meaningful distinction between the two", correct: false, tag: null, rationale: "This distinction is clinically important — conflating the two could lead to either unnecessary intervention for benign acrocyanosis or dangerous under-response to true central cyanosis." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Static lung compliance is calculated using:",
+    options: [
+      { label: "A", text: "Tidal volume divided by (plateau pressure minus PEEP)", correct: true, tag: null, rationale: "Static compliance = Vt / (Pplat - PEEP), reflecting lung and chest wall distensibility under no-flow (static) conditions, which is why plateau pressure (not peak pressure) is used in the calculation." },
+      { label: "B", text: "Tidal volume divided by (peak pressure minus PEEP)", correct: false, tag: null, rationale: "This describes dynamic compliance, which uses peak pressure and reflects both resistive and elastic properties, not static compliance specifically, which isolates the elastic (lung tissue) component using plateau pressure." },
+      { label: "C", text: "Peak pressure divided by tidal volume", correct: false, tag: null, rationale: "This is not the correct compliance formula — compliance is volume change per unit pressure change, not pressure divided by volume, and static compliance specifically uses plateau pressure, not peak." },
+      { label: "D", text: "Respiratory rate divided by tidal volume", correct: false, tag: null, rationale: "This describes the rapid shallow breathing index (RSBI), an entirely different calculation unrelated to compliance." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "A ventilated patient's static compliance has decreased from 60 mL/cmH2O to 35 mL/cmH2O over the past 24 hours, with a corresponding rise in plateau pressure at the same set tidal volume.",
+    question: "This trend most likely indicates:",
+    options: [
+      { label: "A", text: "A worsening process affecting lung or chest wall distensibility, such as worsening ARDS, atelectasis, or a new pleural process", correct: true, tag: null, rationale: "A significant drop in static compliance with rising plateau pressure at the same volume reflects the lung/chest wall becoming stiffer — this could indicate worsening ARDS, atelectasis, pneumothorax, or another process reducing distensibility, and warrants clinical investigation." },
+      { label: "B", text: "Improving lung function", correct: false, tag: null, rationale: "A DECREASE in compliance indicates the lungs are becoming stiffer/less distensible, the opposite of improvement." },
+      { label: "C", text: "A ventilator calibration issue exclusively", correct: false, tag: null, rationale: "While equipment issues are always worth ruling out, this pattern is a recognized clinical trend reflecting real physiological change, not primarily an equipment problem." },
+      { label: "D", text: "No clinically significant change", correct: false, tag: null, rationale: "A compliance drop this significant (60 to 35) over 24 hours represents a clinically meaningful change requiring investigation, not something to dismiss." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Thoracentesis is primarily indicated for:",
+    options: [
+      { label: "A", text: "Diagnostic and/or therapeutic evaluation and drainage of pleural effusion", correct: true, tag: null, rationale: "Thoracentesis involves needle aspiration of pleural fluid, used both to diagnose the cause of an effusion (via fluid analysis) and therapeutically to relieve symptoms from a large effusion." },
+      { label: "B", text: "Evaluating lung parenchymal tissue directly", correct: false, tag: null, rationale: "Thoracentesis samples pleural fluid, not lung parenchymal tissue — a lung biopsy would be needed for direct tissue evaluation." },
+      { label: "C", text: "Treating pneumothorax exclusively", correct: false, tag: null, rationale: "While a similar needle technique can be used for pneumothorax decompression, thoracentesis specifically refers to pleural fluid drainage/sampling, not primarily pneumothorax treatment." },
+      { label: "D", text: "Measuring lung volumes", correct: false, tag: null, rationale: "Lung volumes are measured via pulmonary function testing, not thoracentesis, which is a fluid sampling/drainage procedure." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A DISS (Diameter Index Safety System) connector is designed to:",
+    options: [
+      { label: "A", text: "Prevent incorrect connections between different medical gas delivery systems at threaded connection points", correct: true, tag: null, rationale: "DISS fittings use gas-specific thread diameters to physically prevent misconnection between different medical gases at threaded connections, serving a similar safety purpose to the pin index system but for larger, threaded fittings rather than small cylinder valves." },
+      { label: "B", text: "Measure gas flow rate", correct: false, tag: null, rationale: "DISS is a connection safety system, not a flow measurement device — flow is measured separately via a flowmeter." },
+      { label: "C", text: "Filter particulates from medical gas", correct: false, tag: null, rationale: "DISS fittings serve a connection-safety function, not filtration." },
+      { label: "D", text: "Regulate gas pressure", correct: false, tag: null, rationale: "Pressure regulation is handled by a separate regulator, not the DISS connector itself, whose purpose is preventing incorrect connections." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on a mechanical ventilator has an activated \"low PEEP/CPAP\" alarm, and the RT notices the exhalation valve appears to be sticking, not fully closing between breaths.",
+    question: "What is the most appropriate action?",
+    options: [
+      { label: "A", text: "Inspect and clean or replace the exhalation valve, as a sticking valve can cause inconsistent PEEP delivery", correct: true, tag: null, rationale: "A sticking exhalation valve that doesn't fully close can allow PEEP to be lost between breaths, directly explaining the low PEEP alarm — inspecting, cleaning, or replacing the valve addresses the root mechanical cause." },
+      { label: "B", text: "Simply increase the set PEEP value to compensate without addressing the valve", correct: false, tag: null, rationale: "Compensating by increasing set PEEP doesn't fix the underlying mechanical problem and could result in unpredictable, inconsistent pressure delivery as the valve issue persists or worsens." },
+      { label: "C", text: "Silence the alarm and continue without further action", correct: false, tag: null, rationale: "Silencing an alarm indicating a real mechanical problem without addressing the cause risks continued inconsistent ventilation." },
+      { label: "D", text: "Assume this is a patient-related issue rather than an equipment issue", correct: false, tag: null, rationale: "The description specifically identifies a mechanical valve problem (sticking, not fully closing) — this is an equipment issue requiring equipment-focused troubleshooting, not a patient-related cause." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.B — Ensure Infection Prevention",
+    level: "application",
+    patient: "Adult · General",
+    stem: "An RT is about to perform open suctioning on a ventilated patient with no known multidrug-resistant organisms or special isolation requirements.",
+    question: "What PPE is minimally appropriate for this standard procedure?",
+    options: [
+      { label: "A", text: "Gloves and eye/face protection (given splash risk), following standard precautions", correct: true, tag: null, rationale: "Open suctioning carries a real risk of secretion splash, making eye/face protection appropriate under standard precautions, alongside gloves — this doesn't require special contact/droplet/airborne precautions absent a specific known indication." },
+      { label: "B", text: "No PPE is needed for a routine procedure like suctioning", correct: false, tag: null, rationale: "Suctioning carries splash risk from respiratory secretions — standard precautions PPE (gloves, eye protection) is appropriate even without a specific known infectious concern." },
+      { label: "C", text: "Full airborne precautions PPE (N95, gown, gloves) for every suctioning procedure regardless of indication", correct: false, tag: null, rationale: "Without a specific indication for airborne precautions, this level of PPE is more than what's needed for a routine suctioning procedure under standard precautions alone." },
+      { label: "D", text: "A surgical mask only, without eye protection or gloves", correct: false, tag: null, rationale: "This is incomplete — gloves are essential given direct contact with secretions, and eye protection addresses the splash risk of the procedure." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient with a new tracheostomy has thick, tenacious secretions that are difficult to suction, despite adequate systemic hydration.",
+    question: "What should the RT recommend to help address this specific problem?",
+    options: [
+      { label: "A", text: "Recommend assessing and optimizing airway humidification, since inadequate humidification of inspired gas is a common cause of thick secretions in a tracheostomy patient", correct: true, tag: null, rationale: "A tracheostomy bypasses the nose's natural humidification function, making external humidification of inspired gas essential — inadequate humidification at the airway level (even with good systemic hydration) is a common, correctable cause of thick, difficult-to-clear secretions." },
+      { label: "B", text: "Recommend increasing suction pressure significantly to overcome the thick secretions", correct: false, tag: null, rationale: "Excessive suction pressure risks airway trauma without addressing the underlying humidification problem causing the thick secretions in the first place." },
+      { label: "C", text: "Recommend decreasing airway humidification", correct: false, tag: null, rationale: "This would worsen, not improve, the thick secretion problem — the tracheostomy patient needs adequate humidification, not less." },
+      { label: "D", text: "Recommend no changes since systemic hydration is already adequate", correct: false, tag: null, rationale: "Systemic hydration and LOCAL airway humidification are different things — adequate systemic hydration doesn't substitute for proper humidification of the air the patient breathes through a bypassed upper airway." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "A patient on SIMV with pressure support shows spontaneous breaths with a tidal volume of only 180 mL, well below the target of 350-400 mL for adequate spontaneous ventilation, despite an adequate pressure support level.",
+    question: "What should the RT investigate?",
+    options: [
+      { label: "A", text: "Possible patient fatigue, sedation level, or an inadequate pressure support setting relative to the patient's current effort and lung mechanics", correct: true, tag: null, rationale: "Persistently low spontaneous tidal volumes despite seemingly adequate pressure support could reflect patient fatigue, over-sedation reducing respiratory drive/effort, or a pressure support level that's actually inadequate for this specific patient's lung mechanics — all worth investigating rather than assuming the setting is automatically sufficient." },
+      { label: "B", text: "Assume this is a normal, expected finding requiring no further assessment", correct: false, tag: null, rationale: "A spontaneous tidal volume this low relative to target requires investigation into potential causes, not automatic acceptance as normal." },
+      { label: "C", text: "Immediately switch to full controlled ventilation without further assessment", correct: false, tag: null, rationale: "Jumping straight to controlled ventilation skips a reasonable assessment of correctable factors (sedation, pressure support level) that might resolve the issue while preserving spontaneous effort." },
+      { label: "D", text: "Assume the ventilator is malfunctioning without checking patient factors first", correct: false, tag: null, rationale: "While equipment should always be checked, patient-related factors (sedation, fatigue, effort) are common and important considerations for this specific finding, not something to skip in favor of assuming equipment failure." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Neurally adjusted ventilatory assist (NAVA) is a mode that:",
+    options: [
+      { label: "A", text: "Uses the electrical activity of the diaphragm (Edi) to trigger and proportionally support each breath, closely coupling ventilator support to the patient's own neural respiratory drive", correct: true, tag: null, rationale: "NAVA uses a specialized catheter to detect diaphragmatic electrical activity, allowing the ventilator to trigger and deliver support in direct proportion to the patient's own neural effort, which can improve patient-ventilator synchrony compared to pneumatically triggered modes." },
+      { label: "B", text: "Relies exclusively on pressure changes in the circuit to trigger breaths, like standard modes", correct: false, tag: null, rationale: "NAVA is specifically distinct because it uses neural (electrical) signals rather than relying solely on pneumatic pressure/flow changes for triggering, which is its key differentiating feature." },
+      { label: "C", text: "Is only usable in fully paralyzed, sedated patients", correct: false, tag: null, rationale: "NAVA specifically requires and relies on the patient's own diaphragmatic electrical activity — it wouldn't function as intended in a fully paralyzed patient with no diaphragmatic effort to detect." },
+      { label: "D", text: "Delivers a fixed volume regardless of patient effort", correct: false, tag: null, rationale: "NAVA support is proportional to detected neural effort, not a fixed, effort-independent volume." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · Cardiovascular",
+    stem: "A patient recently started on a new antiarrhythmic medication develops new-onset dyspnea, dry cough, and bilateral interstitial infiltrates on chest X-ray over several weeks, without fever or other infectious signs.",
+    question: "What should the RT recommend?",
+    options: [
+      { label: "A", text: "Recommend evaluation for possible drug-induced pulmonary toxicity related to the new medication, given the temporal relationship and clinical/imaging pattern", correct: true, tag: null, rationale: "Certain antiarrhythmic medications are well-documented causes of drug-induced pulmonary toxicity, presenting with this exact pattern (subacute dyspnea, dry cough, interstitial infiltrates without infection) — the temporal relationship with the new medication should prompt this specific consideration." },
+      { label: "B", text: "Recommend empiric antibiotics as the primary intervention without considering the medication", correct: false, tag: null, rationale: "The absence of fever or other infectious signs, combined with the temporal medication relationship, points away from a primarily infectious process — antibiotics alone would miss the more likely underlying cause here." },
+      { label: "C", text: "Recommend no evaluation since this could be coincidental", correct: false, tag: null, rationale: "The specific pattern and temporal relationship with a medication known for this toxicity is too suggestive to dismiss as coincidental without evaluation." },
+      { label: "D", text: "Recommend increasing the dose of the antiarrhythmic medication", correct: false, tag: null, rationale: "If the medication is a likely cause of pulmonary toxicity, increasing its dose would worsen, not improve, the situation — this is the wrong direction." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A recommendation to change a patient's oxygen delivery device from a nasal cannula to a simple face mask would most likely be based on:",
+    options: [
+      { label: "A", text: "The patient requiring a higher FiO2 than a nasal cannula can reliably provide at reasonable flow rates", correct: true, tag: null, rationale: "Nasal cannulas are typically limited to lower FiO2 ranges before patient discomfort and mucosal drying become significant at higher flows — a simple face mask allows delivery of a moderately higher FiO2 range when a patient's needs exceed what cannula therapy can comfortably provide." },
+      { label: "B", text: "The patient's request for a more comfortable device with no change in oxygen needs", correct: false, tag: null, rationale: "While comfort matters, device escalation decisions should primarily be driven by the patient's actual oxygenation requirements, not preference alone absent a clinical indication." },
+      { label: "C", text: "A decrease in the patient's oxygen requirements", correct: false, tag: null, rationale: "A decreased oxygen requirement would typically prompt de-escalation toward a simpler, lower-flow device, not escalation to a face mask." },
+      { label: "D", text: "Standard practice regardless of clinical status", correct: false, tag: null, rationale: "Device selection should be based on the patient's specific clinical oxygenation needs, not applied as a fixed standard regardless of status." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.F — Evidence-Based Practice",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "The ARDSNet trial's key finding that changed clinical practice was that:",
+    options: [
+      { label: "A", text: "Lower tidal volume ventilation (6 mL/kg predicted body weight) reduced mortality compared to traditional higher tidal volumes in ARDS patients", correct: true, tag: null, rationale: "The landmark ARDSNet trial demonstrated a significant mortality reduction with lower tidal volume (6 mL/kg PBW) ventilation compared to the traditional higher tidal volumes (12 mL/kg) previously used, fundamentally changing standard ARDS ventilator management." },
+      { label: "B", text: "Higher tidal volumes improved outcomes in ARDS", correct: false, tag: null, rationale: "This is the opposite of the trial's actual finding — higher tidal volumes were associated with WORSE outcomes compared to the lower tidal volume strategy." },
+      { label: "C", text: "Tidal volume has no impact on ARDS outcomes", correct: false, tag: null, rationale: "The trial specifically demonstrated that tidal volume DOES significantly impact outcomes in ARDS, contrary to this statement." },
+      { label: "D", text: "PEEP level is the only factor that matters in ARDS management", correct: false, tag: null, rationale: "While PEEP is an important factor studied in various ARDS trials, the ARDSNet trial's landmark finding specifically centered on tidal volume, not a claim that PEEP is the only relevant factor." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "application",
+    patient: "Adult · General",
+    stem: "During a hospital-wide disaster drill simulating a mass casualty event, the RT is asked to help coordinate ventilator resource allocation given limited equipment availability.",
+    question: "What principle should guide this resource allocation process?",
+    options: [
+      { label: "A", text: "Allocate resources based on established triage protocols aimed at maximizing overall survival benefit across the affected population", correct: true, tag: null, rationale: "Disaster/mass casualty resource allocation follows established triage principles designed to do the greatest good for the greatest number, which may differ from normal individual-patient-focused care — this population-level ethical framework guides these difficult allocation decisions." },
+      { label: "B", text: "Allocate resources strictly on a first-come, first-served basis regardless of clinical severity or likely benefit", correct: false, tag: null, rationale: "Standard disaster triage principles are specifically NOT first-come-first-served — they're based on clinical assessment of severity and likely benefit from treatment to maximize overall outcomes." },
+      { label: "C", text: "Allocate all resources to the most critically ill patients regardless of prognosis", correct: false, tag: null, rationale: "In mass casualty triage, resources aren't automatically directed to the most critical patients if their prognosis is very poor even with treatment — this differs from usual individual patient care and aims to maximize overall survival benefit." },
+      { label: "D", text: "There is no established framework for this kind of decision, and it should be improvised in the moment", correct: false, tag: null, rationale: "Established disaster/mass casualty triage protocols exist precisely to guide these decisions in a structured, ethical way, rather than being improvised without a framework." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.H — Assist with Physician Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "During assistance with an elective intubation, the RT's role typically includes:",
+    options: [
+      { label: "A", text: "Preoxygenating the patient, preparing/checking equipment, monitoring vital signs throughout, and confirming tube placement afterward", correct: true, tag: null, rationale: "The RT plays a comprehensive supportive role in intubation: ensuring adequate preoxygenation, having appropriately sized/functioning equipment ready, monitoring the patient's status throughout the procedure, and helping confirm correct tube placement (e.g., via capnography and breath sounds) afterward." },
+      { label: "B", text: "Performing the intubation independently without physician involvement", correct: false, tag: null, rationale: "Elective intubation is typically performed by a physician or other credentialed provider, with the RT playing a supportive rather than primary-operator role, depending on institutional scope of practice." },
+      { label: "C", text: "No specific role beyond being present in the room", correct: false, tag: null, rationale: "The RT has active, specific responsibilities during intubation (preoxygenation, equipment, monitoring, confirmation), not simply passive presence." },
+      { label: "D", text: "Only documenting the procedure after it's completed", correct: false, tag: null, rationale: "The RT's role is active and ongoing throughout the procedure, not limited to after-the-fact documentation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "application",
+    patient: "Pediatric · Asthma",
+    stem: "A family of a child recently diagnosed with asthma asks the RT what triggers they should be watching for at home.",
+    question: "What is the most appropriate response?",
+    options: [
+      { label: "A", text: "Provide education on common asthma triggers (allergens, smoke exposure, respiratory infections, exercise, weather changes) and help the family identify which specific triggers seem to affect their child", correct: true, tag: null, rationale: "Effective asthma education involves both general trigger categories and helping the family identify their child's SPECIFIC triggers through observation, since individual trigger profiles vary — this personalized approach improves the family's ability to actually manage and avoid relevant triggers." },
+      { label: "B", text: "Tell the family that triggers are unpredictable and not worth trying to identify", correct: false, tag: null, rationale: "This is inaccurate and unhelpful — identifying and managing individual triggers is a well-established, important part of asthma management education." },
+      { label: "C", text: "Provide only a generic list of triggers with no discussion of the child's specific situation", correct: false, tag: null, rationale: "While general trigger categories are useful information, effective education also involves helping the family connect this to their own child's specific patterns and situation." },
+      { label: "D", text: "Avoid discussing triggers since medication alone will control the condition", correct: false, tag: null, rationale: "Trigger avoidance is an important complementary strategy alongside medication in asthma management, not something to dismiss in favor of medication alone." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A rising troponin level in a patient with acute dyspnea is most useful for evaluating:",
+    options: [
+      { label: "A", text: "Possible cardiac injury or strain contributing to the respiratory presentation", correct: true, tag: null, rationale: "Troponin is a marker of cardiac muscle injury — in a patient with acute dyspnea, a rising troponin can point toward a cardiac contributor (such as myocardial infarction or significant cardiac strain from conditions like large PE) to the respiratory symptoms, helping broaden the differential beyond a purely pulmonary cause." },
+      { label: "B", text: "Kidney function exclusively", correct: false, tag: null, rationale: "Troponin is not a marker of kidney function — that's assessed via creatinine, BUN, and related studies." },
+      { label: "C", text: "Lung volume measurement", correct: false, tag: null, rationale: "Troponin has no relationship to lung volumes, which are assessed via pulmonary function testing." },
+      { label: "D", text: "Infection severity exclusively", correct: false, tag: null, rationale: "While severe illness of any cause can sometimes affect troponin, it isn't a marker specifically used to gauge infection severity — inflammatory/infectious markers like WBC or procalcitonin serve that role more directly." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Serum lactate is most useful clinically as a marker of:",
+    options: [
+      { label: "A", text: "Tissue hypoperfusion and anaerobic metabolism, often used to assess severity in sepsis or shock", correct: true, tag: null, rationale: "Elevated lactate reflects a shift to anaerobic metabolism from inadequate tissue oxygen delivery, making it a key marker for assessing severity and trending response to treatment in sepsis and shock states." },
+      { label: "B", text: "Kidney function specifically", correct: false, tag: null, rationale: "Lactate is not a direct marker of kidney function — that's assessed via creatinine and BUN." },
+      { label: "C", text: "Lung volume", correct: false, tag: null, rationale: "Lactate has no relationship to lung volume measurement, which is assessed through pulmonary function testing." },
+      { label: "D", text: "Liver function exclusively", correct: false, tag: null, rationale: "While severe liver dysfunction can affect lactate clearance, lactate is primarily used clinically as a marker of tissue perfusion/anaerobic metabolism, not as a primary liver function test." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a steadily falling platelet count over 5 days of heparin therapy, from 250,000 to 90,000/mm³.",
+    question: "This trend should raise suspicion for:",
+    options: [
+      { label: "A", text: "Heparin-induced thrombocytopenia (HIT), warranting prompt evaluation and likely discontinuation of heparin", correct: true, tag: null, rationale: "A significant, progressive platelet drop during heparin therapy is the classic presentation of HIT, a serious immune-mediated complication that requires prompt recognition and typically discontinuation of all heparin products given the paradoxical thrombosis risk." },
+      { label: "B", text: "A normal, expected effect of heparin therapy requiring no action", correct: false, tag: null, rationale: "This magnitude of platelet decline is not a routine, expected heparin effect — it's specifically concerning for HIT and requires evaluation, not dismissal." },
+      { label: "C", text: "Improved coagulation status", correct: false, tag: null, rationale: "A falling platelet count doesn't indicate improved coagulation — in the context of HIT, it's actually associated with a paradoxically INCREASED thrombosis risk despite the low platelet count." },
+      { label: "D", text: "A dietary deficiency unrelated to the heparin therapy", correct: false, tag: null, rationale: "The clear temporal relationship with heparin therapy points specifically toward HIT as the most likely explanation, not an unrelated dietary cause." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Pursed-lip breathing, often seen in COPD patients, primarily helps by:",
+    options: [
+      { label: "A", text: "Creating back-pressure that helps keep airways open longer during exhalation, reducing air trapping", correct: true, tag: null, rationale: "Pursed-lip breathing creates positive back-pressure in the airways during exhalation, helping to splint open airways that would otherwise collapse prematurely in COPD, which reduces air trapping and can improve the sensation of dyspnea." },
+      { label: "B", text: "Increasing the respiratory rate significantly", correct: false, tag: null, rationale: "Pursed-lip breathing is typically associated with a SLOWER, more controlled respiratory pattern, not an increased rate." },
+      { label: "C", text: "Directly increasing FiO2", correct: false, tag: null, rationale: "Pursed-lip breathing is a breathing technique that doesn't change the inspired oxygen concentration — that's controlled separately by supplemental oxygen delivery." },
+      { label: "D", text: "Bypassing the need for bronchodilator therapy", correct: false, tag: null, rationale: "Pursed-lip breathing is a helpful adjunctive technique but doesn't replace the need for appropriate bronchodilator or other pharmacologic therapy in COPD management." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "application",
+    patient: "Adult · General",
+    stem: "An RT is setting up for overnight pulse oximetry monitoring to help evaluate a patient for possible nocturnal hypoxemia.",
+    question: "What is an important consideration for accurate results with this study?",
+    options: [
+      { label: "A", text: "Ensuring proper probe placement and patient education on avoiding probe displacement during sleep, to prevent artifact from being misread as true desaturation", correct: true, tag: null, rationale: "Movement artifact and probe displacement during sleep are common causes of falsely low or erratic readings — proper setup and patient education help ensure the recorded data accurately reflects true physiological desaturation rather than technical artifact." },
+      { label: "B", text: "The specific probe location doesn't matter for overnight studies", correct: false, tag: null, rationale: "Probe placement and secure attachment do matter, particularly for a study spanning many hours of patient movement during sleep, to minimize artifact." },
+      { label: "C", text: "No patient education is necessary for this type of study", correct: false, tag: null, rationale: "Patient education about keeping the probe in place and avoiding certain movements can meaningfully improve data quality for an overnight unattended study." },
+      { label: "D", text: "The study can only be performed in a sleep lab setting", correct: false, tag: null, rationale: "Overnight pulse oximetry can often be performed at home as an unattended study, unlike full polysomnography, which does typically require a monitored setting." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "application",
+    patient: "Adult · General",
+    stem: "Overnight pulse oximetry results show an oxygen desaturation index (ODI) of 22 events/hour, with a mean SpO2 of 91% and multiple episodes below 88%.",
+    question: "This result is most consistent with:",
+    options: [
+      { label: "A", text: "Significant nocturnal hypoxemia, warranting further evaluation such as formal polysomnography", correct: true, tag: null, rationale: "An ODI this elevated, combined with a reduced mean SpO2 and repeated significant desaturations, indicates clinically significant nocturnal hypoxemia that warrants further diagnostic workup, such as formal polysomnography, to characterize the underlying cause (e.g., OSA, hypoventilation)." },
+      { label: "B", text: "A normal overnight oxygenation pattern", correct: false, tag: null, rationale: "This ODI and desaturation pattern is well outside normal limits and represents a clinically significant finding, not a normal result." },
+      { label: "C", text: "A technical artifact requiring no further consideration", correct: false, tag: null, rationale: "While technical issues should always be considered, a pattern this consistent (repeated events, reduced mean SpO2) is more consistent with a real physiological finding requiring further evaluation, not dismissal as artifact." },
+      { label: "D", text: "Definitive diagnosis of central sleep apnea specifically", correct: false, tag: null, rationale: "Pulse oximetry alone cannot distinguish between different causes of desaturation (obstructive vs central sleep apnea, hypoventilation, etc.) — that requires more detailed evaluation like polysomnography." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "recall",
+    patient: "Pediatric · General",
+    stem: null,
+    question: "A sweat chloride test is the diagnostic gold standard for confirming:",
+    options: [
+      { label: "A", text: "Cystic fibrosis", correct: true, tag: null, rationale: "The sweat chloride test remains the gold-standard diagnostic test for confirming cystic fibrosis, measuring the elevated chloride concentration in sweat characteristic of the underlying CFTR gene dysfunction." },
+      { label: "B", text: "Asthma", correct: false, tag: null, rationale: "Asthma diagnosis relies on clinical history, spirometry, and related testing, not a sweat chloride test." },
+      { label: "C", text: "Bronchopulmonary dysplasia", correct: false, tag: null, rationale: "BPD is diagnosed based on clinical history (prematurity, oxygen requirement duration) and imaging, not a sweat chloride test." },
+      { label: "D", text: "Croup", correct: false, tag: null, rationale: "Croup is a clinical diagnosis based on presentation (barky cough, stridor), unrelated to sweat chloride testing." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "An oxygen concentrator produces supplemental oxygen by:",
+    options: [
+      { label: "A", text: "Filtering room air through a molecular sieve to selectively remove nitrogen, concentrating the remaining oxygen", correct: true, tag: null, rationale: "Oxygen concentrators use a molecular sieve (zeolite) material that selectively adsorbs nitrogen from room air under pressure, leaving a concentrated oxygen output — this is different from a cylinder or liquid system, which store pre-existing oxygen supply." },
+      { label: "B", text: "Storing pre-compressed pure oxygen gas, similar to a cylinder", correct: false, tag: null, rationale: "This describes a compressed gas cylinder, not a concentrator, which actively generates concentrated oxygen from ambient air rather than storing a pre-filled supply." },
+      { label: "C", text: "Converting liquid oxygen to gas, similar to a liquid system", correct: false, tag: null, rationale: "This describes a liquid oxygen system, not a concentrator, which works via room air filtration rather than liquid-to-gas conversion." },
+      { label: "D", text: "Chemically synthesizing new oxygen molecules", correct: false, tag: null, rationale: "A concentrator doesn't synthesize new oxygen — it separates and concentrates the oxygen already present in room air." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's home oxygen concentrator is showing an oxygen purity alarm, with output testing at 78% oxygen concentration (below the acceptable threshold).",
+    question: "What is the most appropriate immediate action?",
+    options: [
+      { label: "A", text: "Provide the patient with a backup oxygen source (e.g., cylinder) and arrange for concentrator servicing or replacement", correct: true, tag: null, rationale: "A concentrator producing oxygen below acceptable purity thresholds cannot be relied upon to meet the patient's prescribed oxygen needs — ensuring an alternative, reliable oxygen source while the device is serviced or replaced protects patient safety in the interim." },
+      { label: "B", text: "Continue using the concentrator as-is since it's still producing some oxygen output", correct: false, tag: null, rationale: "Oxygen output below the acceptable purity threshold may not adequately meet the patient's prescribed therapeutic needs — continuing to rely on a malfunctioning device risks under-treatment." },
+      { label: "C", text: "Increase the flow rate setting significantly to compensate for lower purity", correct: false, tag: null, rationale: "Increasing flow doesn't correct the underlying purity problem with the device and isn't an appropriate substitute for addressing the malfunction directly." },
+      { label: "D", text: "Discontinue all home oxygen therapy for this patient", correct: false, tag: null, rationale: "Discontinuing needed oxygen therapy isn't appropriate — the solution is ensuring a reliable alternative source while the equipment issue is resolved, not withdrawing prescribed therapy." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.C — Perform Quality Control Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Calibration verification of a mechanical ventilator's delivered tidal volume is typically performed using:",
+    options: [
+      { label: "A", text: "A calibrated test lung or known-volume device connected to the ventilator circuit to compare delivered versus measured volume", correct: true, tag: null, rationale: "Ventilator volume calibration checks typically use a test lung or precision measurement device to verify that the volume the ventilator reports delivering matches what's actually being delivered, catching drift or inaccuracy before patient use." },
+      { label: "B", text: "Patient testing exclusively, with no bench verification", correct: false, tag: null, rationale: "Routine calibration verification should be performed on bench equipment (test lung), not solely relying on patient use to identify potential inaccuracies, which would risk patient safety." },
+      { label: "C", text: "Visual inspection of the ventilator casing only", correct: false, tag: null, rationale: "Visual inspection alone doesn't verify functional accuracy of volume delivery — an actual measurement comparison against a known standard is needed." },
+      { label: "D", text: "Checking the device's power cord condition only", correct: false, tag: null, rationale: "While electrical safety checks matter, they don't address volume delivery calibration accuracy specifically." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A double-lumen endotracheal tube is specifically used for:",
+    options: [
+      { label: "A", text: "Independent lung ventilation, such as during certain thoracic surgeries where isolating one lung from the other is needed", correct: true, tag: null, rationale: "A double-lumen tube allows each lung to be ventilated independently or one lung to be selectively deflated (e.g., for surgical access), a specialized application distinct from routine single-lumen intubation." },
+      { label: "B", text: "Routine, general intubation for standard mechanical ventilation", correct: false, tag: null, rationale: "Standard mechanical ventilation typically uses a single-lumen ET tube — the double-lumen tube is reserved for the specific indication of independent lung isolation/ventilation." },
+      { label: "C", text: "Neonatal intubation exclusively", correct: false, tag: null, rationale: "Double-lumen tubes are used in specific adult surgical/independent lung ventilation contexts, not as a neonatal-specific device." },
+      { label: "D", text: "Long-term home ventilation", correct: false, tag: null, rationale: "Long-term home ventilation typically involves a tracheostomy, not a specialized double-lumen ET tube, which is used for specific short-term surgical/procedural purposes." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on mechanical ventilation with volume control mode has a sudden, significant drop in exhaled tidal volume along with a new high-pitched whistling sound audible near the ET tube connection.",
+    question: "What is the most likely cause?",
+    options: [
+      { label: "A", text: "A leak at the ET tube cuff or circuit connection point, given the whistling sound and volume loss together", correct: true, tag: null, rationale: "A whistling sound combined with a sudden drop in exhaled volume is a classic combination pointing to an air leak — likely from cuff under-inflation or a loose circuit connection — that should be promptly located and corrected." },
+      { label: "B", text: "Improved lung compliance", correct: false, tag: null, rationale: "A sudden volume DROP with an audible leak sound doesn't reflect improved compliance — this points to a mechanical leak problem instead." },
+      { label: "C", text: "Increased airway resistance", correct: false, tag: null, rationale: "Increased resistance would more typically show as elevated pressures with maintained or altered flow patterns, not this specific combination of volume loss with an audible whistling leak." },
+      { label: "D", text: "A normal, expected ventilator sound requiring no action", correct: false, tag: null, rationale: "A new whistling sound combined with significant volume loss represents a real problem requiring prompt investigation and correction, not something to dismiss as normal." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Volume-targeted pressure control ventilation modes (like PRVC) were developed primarily to combine which two benefits?",
+    options: [
+      { label: "A", text: "The guaranteed minute ventilation of volume control with the decelerating flow pattern and variable pressure-limiting characteristics of pressure control", correct: true, tag: null, rationale: "These hybrid modes were designed to capture the best of both traditional approaches — ensuring a target volume is met (like volume control) while using a more physiologic decelerating flow pattern that can improve gas distribution and patient comfort (like pressure control)." },
+      { label: "B", text: "Lower cost and simpler equipment design", correct: false, tag: null, rationale: "These modes were developed for clinical/physiological reasons related to ventilation delivery characteristics, not primarily for cost or equipment simplicity." },
+      { label: "C", text: "Elimination of the need for any patient monitoring", correct: false, tag: null, rationale: "These modes still require careful patient monitoring — they don't eliminate the need for clinical oversight." },
+      { label: "D", text: "Exclusive use in pediatric patients only", correct: false, tag: null, rationale: "Volume-targeted pressure control modes are used across a range of patient populations, not exclusively in pediatrics." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Pediatric · General",
+    stem: "A child on long-term home mechanical ventilation via tracheostomy is due for a routine tracheostomy tube change, but the family reports the child has had increased secretions and mild fever over the past day.",
+    question: "What should the RT recommend?",
+    options: [
+      { label: "A", text: "Recommend evaluating the child's current clinical stability before proceeding, and consider whether the routine change should be deferred given the acute change in status", correct: true, tag: null, rationale: "A child with new fever and increased secretions may be less stable for a routine, elective procedure — evaluating current status first and potentially deferring the change (unless urgently needed for tube malfunction) is a reasonable, safety-focused approach rather than proceeding automatically as scheduled." },
+      { label: "B", text: "Proceed with the routine change exactly as scheduled regardless of the new symptoms", correct: false, tag: null, rationale: "New fever and increased secretions represent a change in clinical status that should prompt reassessment before an elective procedure, not automatic unchanged proceeding." },
+      { label: "C", text: "Cancel all future tracheostomy changes indefinitely", correct: false, tag: null, rationale: "This is an overreaction — the child will still need routine tube changes; the current episode simply warrants reassessment of timing, not indefinite cancellation of a necessary routine care component." },
+      { label: "D", text: "Ignore the new symptoms since tracheostomy changes are routine", correct: false, tag: null, rationale: "New fever and increased secretions shouldn't be ignored just because the procedure itself is routine — clinical status always warrants consideration before proceeding." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A recommendation to add a mucolytic agent (such as nebulized hypertonic saline or dornase alfa) to a patient's regimen would most likely be based on:",
+    options: [
+      { label: "A", text: "The presence of thick, difficult-to-clear secretions contributing to airway obstruction or poor clearance", correct: true, tag: null, rationale: "Mucolytic agents are specifically indicated when thick, tenacious secretions are a clinical problem, helping to reduce mucus viscosity and improve clearance — they aren't a routine addition absent this specific indication." },
+      { label: "B", text: "A need to bronchodilate the airways", correct: false, tag: null, rationale: "Bronchodilation is the specific role of bronchodilator medications, not mucolytics, which target secretion viscosity rather than airway smooth muscle tone." },
+      { label: "C", text: "A need to reduce airway inflammation", correct: false, tag: null, rationale: "Anti-inflammatory medications (like corticosteroids) target inflammation — mucolytics have a different, distinct mechanism focused on secretion characteristics." },
+      { label: "D", text: "Universal application to all respiratory patients regardless of secretion status", correct: false, tag: null, rationale: "Mucolytics are indicated based on the specific presence of problematic thick secretions, not applied universally regardless of a patient's actual secretion characteristics." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.F — Evidence-Based Practice",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A hospital is implementing a ventilator-associated pneumonia (VAP) prevention bundle based on current evidence-based guidelines.",
+    question: "Which of the following is a core, evidence-based component of a standard VAP prevention bundle?",
+    options: [
+      { label: "A", text: "Head-of-bed elevation to 30-45 degrees, daily sedation interruption with spontaneous breathing trials, and regular oral care", correct: true, tag: null, rationale: "These are well-established, evidence-based core components of VAP prevention bundles, each targeting a different mechanism of VAP risk — aspiration risk (positioning), prolonged ventilation (sedation/SBT), and oral bacterial burden (oral care)." },
+      { label: "B", text: "Keeping the head of bed flat at all times", correct: false, tag: null, rationale: "This is the OPPOSITE of the evidence-based recommendation — flat positioning increases aspiration risk and is specifically discouraged in VAP prevention bundles." },
+      { label: "C", text: "Continuous deep sedation without any interruption", correct: false, tag: null, rationale: "Continuous, uninterrupted deep sedation is associated with prolonged ventilation duration and higher VAP risk — daily sedation interruption is the evidence-based practice instead." },
+      { label: "D", text: "Avoiding all oral care to prevent airway stimulation", correct: false, tag: null, rationale: "Regular oral care is a core, evidence-based bundle component that reduces bacterial burden — avoiding it would increase, not decrease, VAP risk." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "When preparing a ventilated patient for ground ambulance interfacility transport, which of the following is an important RT responsibility?",
+    options: [
+      { label: "A", text: "Ensuring adequate portable oxygen supply for the anticipated transport duration plus a safety margin, and confirming all equipment is transport-ready", correct: true, tag: null, rationale: "Running out of oxygen mid-transport is a serious, preventable risk — calculating adequate supply (including a safety margin for unexpected delays) and confirming equipment readiness is a core RT responsibility before any interfacility transport." },
+      { label: "B", text: "Providing exactly enough oxygen for the expected transport time with no safety margin", correct: false, tag: null, rationale: "Not including a safety margin risks running out of oxygen if transport takes longer than expected due to traffic, delays, or complications — a margin is standard, prudent practice." },
+      { label: "C", text: "Assuming the receiving facility will have all necessary equipment, so minimal preparation is needed", correct: false, tag: null, rationale: "The transport team needs to be self-sufficient for the duration of transport — assuming the destination will handle any gaps risks patient safety during the transport itself." },
+      { label: "D", text: "No specific responsibility beyond what the ambulance crew handles", correct: false, tag: null, rationale: "The RT has specific, active responsibilities in preparing the respiratory equipment and oxygen supply for a ventilated patient's transport, not simply deferring to the ambulance crew." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.H — Assist with Physician Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "The RT is assisting with placement of an arterial line for continuous blood pressure monitoring and arterial blood gas sampling access.",
+    question: "After the line is placed, what is an important ongoing RT responsibility related to this line?",
+    options: [
+      { label: "A", text: "Performing an Allen's test verification (if not already done) and monitoring the site and waveform for signs of complications, such as poor perfusion or line malfunction", correct: true, tag: null, rationale: "Ongoing monitoring of arterial line function and the distal circulation (checking for adequate perfusion, appropriate waveform, and signs of complications like thrombosis) is an important safety responsibility once the line is in place and being used for sampling/monitoring." },
+      { label: "B", text: "No ongoing monitoring responsibility once the line is placed", correct: false, tag: null, rationale: "Arterial lines require ongoing monitoring for complications — this isn't a \"set and forget\" device." },
+      { label: "C", text: "Removing the line immediately after placement", correct: false, tag: null, rationale: "The line is placed specifically for ongoing monitoring/sampling access — immediate removal would defeat its purpose." },
+      { label: "D", text: "Only the physician has any responsibility related to the line after placement", correct: false, tag: null, rationale: "The RT, as a frequent user of the line for blood gas sampling, has an active role in monitoring for line-related complications and proper function." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "When teaching a patient about pulmonary rehabilitation, which of the following best describes its core components?",
+    options: [
+      { label: "A", text: "A structured program combining exercise training, disease education, and psychosocial support to improve functional capacity and quality of life in chronic lung disease", correct: true, tag: null, rationale: "Pulmonary rehabilitation is a comprehensive, evidence-based intervention combining supervised exercise, disease-specific education, and psychosocial support components, shown to improve exercise tolerance, symptoms, and quality of life in patients with chronic respiratory conditions." },
+      { label: "B", text: "Medication management exclusively, with no exercise component", correct: false, tag: null, rationale: "Exercise training is actually a core, central component of pulmonary rehabilitation, not something excluded from the program." },
+      { label: "C", text: "A one-time educational session with no ongoing program", correct: false, tag: null, rationale: "Pulmonary rehabilitation is a structured, typically multi-week program with ongoing sessions, not a single one-time educational encounter." },
+      { label: "D", text: "A program exclusively for post-surgical patients", correct: false, tag: null, rationale: "Pulmonary rehabilitation is indicated for a range of chronic respiratory conditions (like COPD), not exclusively for post-surgical patients." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "application",
+    patient: "Adult · General",
+    stem: "On chest auscultation, the RT hears fine, high-pitched crackles at the lung bases that do not clear with coughing, in a patient with progressive dyspnea over several months.",
+    question: "This finding, combined with the chronic history, is most suggestive of:",
+    options: [
+      { label: "A", text: "A possible interstitial lung process, such as pulmonary fibrosis", correct: true, tag: null, rationale: "Fine, \"Velcro-like\" crackles that persist despite coughing, especially at the bases with a chronic progressive dyspnea history, are classically associated with interstitial lung disease/fibrosis, distinct from the coarser, cough-clearing crackles more typical of secretions." },
+      { label: "B", text: "Simple retained secretions that should clear with coughing", correct: false, tag: null, rationale: "The description specifically notes these crackles do NOT clear with coughing, which distinguishes them from secretion-related crackles and points toward a different, chronic interstitial process." },
+      { label: "C", text: "A normal finding in an otherwise healthy patient", correct: false, tag: null, rationale: "Fine crackles with a chronic progressive symptom history are not a normal finding and warrant further evaluation." },
+      { label: "D", text: "An acute pneumothorax", correct: false, tag: null, rationale: "Pneumothorax typically presents with absent or diminished breath sounds, not fine crackles, and doesn't fit this chronic progressive presentation." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Capnography (end-tidal CO2 monitoring) provides which of the following pieces of clinical information?",
+    options: [
+      { label: "A", text: "A breath-by-breath estimate of PaCO2 trends and confirmation of continued ventilation/airway patency", correct: true, tag: null, rationale: "Capnography provides continuous, real-time information about ventilation status, correlating (though not identically) with PaCO2, and serves as an important confirmation that the airway remains patent and the patient is being ventilated — useful for both intubation confirmation and ongoing monitoring." },
+      { label: "B", text: "Direct measurement of oxygen saturation", correct: false, tag: null, rationale: "Oxygen saturation is measured via pulse oximetry (SpO2), not capnography, which specifically measures exhaled CO2." },
+      { label: "C", text: "Blood pressure trends", correct: false, tag: null, rationale: "Capnography doesn't provide blood pressure information — that requires separate hemodynamic monitoring." },
+      { label: "D", text: "Direct measurement of PaCO2 with complete accuracy", correct: false, tag: null, rationale: "While end-tidal CO2 correlates with PaCO2, it's an estimate that can be affected by various factors (V/Q mismatch, etc.) — it's not always perfectly identical to a direct arterial blood gas PaCO2 measurement." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A significantly elevated brain natriuretic peptide (BNP) level in conjunction with acute dyspnea most strongly supports a diagnosis of:",
+    options: [
+      { label: "A", text: "Acute decompensated heart failure", correct: true, tag: null, rationale: "BNP is released in response to ventricular stretch/wall stress and is elevated in heart failure — a markedly elevated level in the setting of acute dyspnea strongly supports a cardiac, rather than primarily pulmonary, cause of the symptoms." },
+      { label: "B", text: "Acute asthma exacerbation", correct: false, tag: null, rationale: "BNP is not typically elevated in a primary asthma exacerbation without a cardiac component — this marker specifically points toward cardiac involvement." },
+      { label: "C", text: "Simple viral upper respiratory infection", correct: false, tag: null, rationale: "A significantly elevated BNP would be an unusual and unexplained finding for a simple viral URI, pointing instead toward a cardiac process." },
+      { label: "D", text: "Normal physiologic dyspnea from exertion", correct: false, tag: null, rationale: "A markedly elevated BNP is not consistent with simple physiologic exertional dyspnea in an otherwise healthy person — it indicates a pathologic cardiac process." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a steadily climbing serum creatinine over several days while receiving a nephrotoxic antibiotic for a respiratory infection.",
+    question: "What should the RT recognize about this situation?",
+    options: [
+      { label: "A", text: "This trend may reflect drug-induced nephrotoxicity, which is relevant since it could affect dosing of other medications and overall patient stability", correct: true, tag: null, rationale: "Recognizing medication-related organ toxicity trends, even outside the RT's primary domain, is valuable for overall patient safety awareness — this finding is relevant to the broader care team's medication management and the patient's overall trajectory, which can affect respiratory care planning too." },
+      { label: "B", text: "This finding is entirely irrelevant to respiratory care and can be ignored by the RT", correct: false, tag: null, rationale: "While kidney function isn't the RT's primary domain, recognizing significant trends that affect overall patient stability and medication dosing is part of holistic patient awareness, especially when it might affect other aspects of care." },
+      { label: "C", text: "This is a normal, expected finding requiring no documentation or awareness", correct: false, tag: null, rationale: "A progressively rising creatinine is not a normal, inconsequential finding — it reflects a real clinical trend worth noting even outside one's primary specialty." },
+      { label: "D", text: "Only the nephrology team needs to be aware of this finding", correct: false, tag: null, rationale: "While nephrology involvement is important, general clinical awareness across the care team, including the RT, supports better overall patient safety and communication." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Use of accessory muscles of respiration (sternocleidomastoid, scalene muscles) during breathing at rest indicates:",
+    options: [
+      { label: "A", text: "Increased work of breathing, suggesting the diaphragm alone is not adequately meeting ventilatory demand", correct: true, tag: null, rationale: "Accessory muscle use at rest is a visible sign that the primary respiratory muscle (diaphragm) is not sufficient to meet the patient's current ventilatory demand, indicating increased work of breathing and warranting further assessment." },
+      { label: "B", text: "Normal, relaxed breathing", correct: false, tag: null, rationale: "Accessory muscle use at rest is NOT a normal finding — normal, relaxed breathing primarily uses the diaphragm without needing to recruit accessory muscles." },
+      { label: "C", text: "A sign specific to cardiac disease only", correct: false, tag: null, rationale: "Accessory muscle use is a general sign of increased work of breathing that can occur with various respiratory conditions, not specific to cardiac disease alone." },
+      { label: "D", text: "Decreased work of breathing", correct: false, tag: null, rationale: "This is the opposite of what accessory muscle use indicates — it's a sign of INCREASED, not decreased, respiratory effort." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Transcutaneous CO2 monitoring is particularly useful in which clinical scenario?",
+    options: [
+      { label: "A", text: "Continuous, noninvasive trending of CO2 in patients where frequent arterial sampling is impractical, such as certain neonatal or long-term ventilated patients", correct: true, tag: null, rationale: "Transcutaneous CO2 monitoring provides continuous, noninvasive trend information, making it valuable in populations like neonates or chronically ventilated patients where frequent arterial punctures are undesirable or impractical, though it should be correlated periodically with actual blood gas values." },
+      { label: "B", text: "As a complete replacement for arterial blood gas sampling in all patients", correct: false, tag: null, rationale: "Transcutaneous monitoring provides useful trend data but isn't considered a complete replacement for periodic ABG confirmation, given potential accuracy limitations depending on perfusion and other factors." },
+      { label: "C", text: "Measuring blood pressure trends", correct: false, tag: null, rationale: "Transcutaneous CO2 monitoring measures carbon dioxide levels through the skin, not blood pressure, which requires separate hemodynamic monitoring." },
+      { label: "D", text: "Diagnosing pneumothorax", correct: false, tag: null, rationale: "This monitoring modality tracks CO2 trends and isn't a diagnostic tool for pneumothorax, which is identified through clinical assessment and imaging." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "ABG: pH 7.50, PaCO2 42 mmHg, HCO3 32 mEq/L, PaO2 90 mmHg on room air. The patient has a history of significant vomiting over the past several days.",
+    question: "This ABG is most consistent with:",
+    options: [
+      { label: "A", text: "Metabolic alkalosis, likely from loss of gastric acid through vomiting, with a normal PaCO2 (no significant respiratory compensation yet)", correct: true, tag: null, rationale: "Elevated pH with elevated HCO3 and a relatively normal PaCO2 points to a primary metabolic alkalosis — the clinical history of significant vomiting (loss of gastric HCl) is a classic cause, and the near-normal PaCO2 suggests compensation hasn't fully developed yet." },
+      { label: "B", text: "Respiratory alkalosis", correct: false, tag: null, rationale: "The PaCO2 here is essentially normal, not low, which argues against a primary respiratory alkalosis — the primary disturbance is metabolic (elevated HCO3), not respiratory." },
+      { label: "C", text: "Metabolic acidosis", correct: false, tag: null, rationale: "The elevated pH and elevated HCO3 both point toward alkalosis, not acidosis — this is the opposite pattern from what's described." },
+      { label: "D", text: "A normal ABG", correct: false, tag: null, rationale: "A pH of 7.50 with an elevated HCO3 of 32 is clearly outside normal ranges, representing an active acid-base disturbance." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A methacholine challenge test is primarily used to help diagnose:",
+    options: [
+      { label: "A", text: "Airway hyperresponsiveness, supporting a diagnosis of asthma when baseline spirometry is normal but clinical suspicion remains", correct: true, tag: null, rationale: "A methacholine challenge test provokes bronchoconstriction in hyperresponsive airways, helping confirm asthma in patients with a suggestive history but normal baseline spirometry — a positive test (significant FEV1 drop) supports the diagnosis." },
+      { label: "B", text: "COPD exclusively", correct: false, tag: null, rationale: "Methacholine challenge testing is specifically used to assess airway hyperresponsiveness relevant to asthma diagnosis, not as a primary diagnostic tool for COPD." },
+      { label: "C", text: "Pulmonary embolism", correct: false, tag: null, rationale: "PE is diagnosed via imaging studies like CTPA, entirely unrelated to methacholine challenge testing." },
+      { label: "D", text: "Restrictive lung disease", correct: false, tag: null, rationale: "Methacholine challenge specifically tests for airway hyperreactivity relevant to obstructive conditions like asthma, not restrictive lung disease." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient using a CPAP device at home reports the machine seems louder than usual and they're noticing more air blowing out from around the mask edges than before.",
+    question: "What should the RT recommend first?",
+    options: [
+      { label: "A", text: "Assess for mask fit issues or a deteriorated mask cushion/seal as the likely cause of the increased noise and air leak", correct: true, tag: null, rationale: "Increased noise and visible air leak around the mask are commonly caused by a worn-out cushion, improper fit, or a damaged seal — checking and potentially replacing the mask cushion or adjusting fit is a reasonable first troubleshooting step before assuming a deeper device malfunction." },
+      { label: "B", text: "Assume the entire CPAP device needs replacement without further troubleshooting", correct: false, tag: null, rationale: "Jumping to full device replacement skips simpler, more common explanations (mask fit/seal issues) that should be checked first." },
+      { label: "C", text: "Recommend discontinuing CPAP therapy entirely", correct: false, tag: null, rationale: "Discontinuing needed therapy isn't appropriate for what's likely a correctable equipment issue — the mask/seal should be assessed and addressed first." },
+      { label: "D", text: "Ignore the reported changes since CPAP devices don't need adjustment over time", correct: false, tag: null, rationale: "CPAP equipment, especially the mask cushion, does wear over time and can need adjustment or replacement — this shouldn't be dismissed." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A closed-suction (in-line) suction catheter system, compared to an open suction technique, is primarily advantageous because it:",
+    options: [
+      { label: "A", text: "Allows suctioning without disconnecting the patient from the ventilator circuit, helping maintain oxygenation and PEEP during the procedure", correct: true, tag: null, rationale: "A closed/in-line suction system permits suctioning while the patient remains connected to the ventilator, avoiding the derecruitment and oxygen desaturation risk that can occur when disconnecting for open suctioning, particularly important in patients requiring high PEEP or FiO2." },
+      { label: "B", text: "Is less expensive than open suctioning supplies", correct: false, tag: null, rationale: "Closed suction systems are typically more expensive than simple open suction catheters — their advantage is clinical (maintaining ventilation/PEEP), not primarily cost-related." },
+      { label: "C", text: "Requires disconnecting the ventilator circuit for better visualization", correct: false, tag: null, rationale: "This is the opposite of the closed system's key advantage — it specifically avoids the need for disconnection, unlike open suctioning." },
+      { label: "D", text: "Eliminates all infection risk associated with suctioning", correct: false, tag: null, rationale: "While closed systems may have some infection control benefits, they don't eliminate all risk — proper technique remains important regardless of system type." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.C — Perform Quality Control Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A capnograph's calibration check using a known CO2 concentration gas shows a reading 8% higher than the expected value, outside the device's stated accuracy tolerance.",
+    question: "What is the most appropriate action?",
+    options: [
+      { label: "A", text: "Take the capnograph out of clinical use and recalibrate or service it before further patient use", correct: true, tag: null, rationale: "A calibration check result outside the stated accuracy tolerance means the device cannot be trusted to provide accurate readings — it should be taken out of service and corrected before being used again for patient monitoring." },
+      { label: "B", text: "Continue using the device for patient monitoring since it's only slightly outside tolerance", correct: false, tag: null, rationale: "Even a seemingly small deviation outside stated tolerance means the device's accuracy can't be trusted — it should be addressed before continued clinical use, not dismissed as minor." },
+      { label: "C", text: "Manually subtract 8% from all future readings to compensate", correct: false, tag: null, rationale: "Manual compensation introduces additional error risk — the correct approach is servicing/recalibrating the device itself, not applying ad hoc corrections to readings." },
+      { label: "D", text: "Assume the calibration gas itself is defective without further investigation", correct: false, tag: null, rationale: "While possible, the standard approach is to first address the device via recalibration/service using the known reference gas, rather than assuming the reference standard is wrong without investigation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "application",
+    patient: "Pediatric · General",
+    stem: "A 5-year-old child requires intubation. The RT is selecting an appropriately sized uncuffed or cuffed endotracheal tube.",
+    question: "Which factor is most important in appropriate pediatric ET tube size selection?",
+    options: [
+      { label: "A", text: "Using age-based formulas or length-based resuscitation tapes as a starting estimate, while remaining prepared to adjust based on the individual child's anatomy", correct: true, tag: null, rationale: "Pediatric ET tube sizing commonly uses age-based formulas or length-based tools (like a Broselow tape) as an evidence-based starting point, while always being prepared to have a size larger and smaller available given normal anatomical variation between children." },
+      { label: "B", text: "Always using the same fixed tube size regardless of the child's age", correct: false, tag: null, rationale: "Pediatric patients vary enormously in size across ages — a fixed tube size regardless of age would be inappropriate and unsafe." },
+      { label: "C", text: "Adult-sized tubes are appropriate for all pediatric patients over age 2", correct: false, tag: null, rationale: "This is incorrect and unsafe — pediatric airway sizing must account for the child's actual size, which varies significantly and is far smaller than adult dimensions even well beyond age 2." },
+      { label: "D", text: "Tube size selection is not clinically important in pediatric intubation", correct: false, tag: null, rationale: "Appropriate tube size selection is critically important in pediatric intubation — an incorrectly sized tube risks airway trauma, inadequate ventilation, or excessive leak." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on volume control ventilation shows progressively increasing peak AND plateau pressures together over several hours, with the difference between the two (peak minus plateau) remaining stable.",
+    question: "This pattern most likely reflects:",
+    options: [
+      { label: "A", text: "A process affecting lung/chest wall compliance (making the lungs stiffer), such as worsening pulmonary edema, ARDS progression, or increasing abdominal distension", correct: true, tag: null, rationale: "When peak and plateau pressures rise TOGETHER while their difference (reflecting airway resistance) stays stable, this points to a compliance problem — something making the lung or chest wall stiffer — rather than an airway resistance issue, which would show a widening gap between the two pressures instead." },
+      { label: "B", text: "A worsening airway resistance problem, such as bronchospasm or secretions", correct: false, tag: null, rationale: "A primarily resistance-related problem would show a WIDENING gap between peak and plateau pressure, not both rising together with a stable difference — this pattern points to compliance, not resistance." },
+      { label: "C", text: "Improving lung function", correct: false, tag: null, rationale: "Rising pressures at a constant volume indicate worsening, not improving, respiratory system compliance." },
+      { label: "D", text: "A ventilator circuit leak", correct: false, tag: null, rationale: "A leak would typically cause volume loss and potentially altered pressure readings, but wouldn't produce this specific pattern of both peak and plateau rising together with volume maintained." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Permissive hypercapnia, sometimes used as a strategy in lung-protective ventilation, refers to:",
+    options: [
+      { label: "A", text: "Deliberately allowing PaCO2 to rise above normal levels in order to use lower tidal volumes/pressures and minimize ventilator-induced lung injury", correct: true, tag: null, rationale: "Permissive hypercapnia is a deliberate strategy where a somewhat elevated PaCO2 is tolerated (within reason, and contraindicated in certain conditions like elevated ICP) in order to prioritize lung-protective lower tidal volumes and pressures over normalizing CO2." },
+      { label: "B", text: "Aggressively correcting PaCO2 to normal at all costs, even with high tidal volumes", correct: false, tag: null, rationale: "This is the opposite approach — permissive hypercapnia specifically accepts some CO2 elevation rather than pursuing normalization through potentially injurious higher tidal volumes." },
+      { label: "C", text: "A strategy used only in patients with normal lung compliance", correct: false, tag: null, rationale: "Permissive hypercapnia is typically used in conditions with reduced compliance (like ARDS), where lung-protective ventilation strategies are especially important, not in patients with normal compliance." },
+      { label: "D", text: "An approach with no specific contraindications", correct: false, tag: null, rationale: "Permissive hypercapnia does have important contraindications, such as elevated intracranial pressure, where a rising PaCO2 could worsen cerebral vasodilation and ICP." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on long-term supplemental oxygen therapy for chronic hypoxemia has follow-up testing showing consistent SpO2 above 92% on room air during the day, though nocturnal studies still show some desaturation.",
+    question: "What should the RT recommend regarding this patient's oxygen therapy?",
+    options: [
+      { label: "A", text: "Recommend reassessment of daytime oxygen needs given the improved room air saturation, while continuing to address nocturnal oxygen needs separately based on sleep study findings", correct: true, tag: null, rationale: "Daytime and nocturnal oxygen needs can differ and should be individually reassessed — this patient's improved daytime saturation may allow reduction/discontinuation of daytime oxygen while still requiring nocturnal support based on the separate sleep-related findings." },
+      { label: "B", text: "Recommend discontinuing all oxygen therapy entirely, including at night, based on the daytime results alone", correct: false, tag: null, rationale: "The daytime results don't address the separately identified nocturnal desaturation — discontinuing nighttime oxygen based only on daytime data would ignore relevant findings." },
+      { label: "C", text: "Recommend no changes to the current 24-hour oxygen prescription despite the new data", correct: false, tag: null, rationale: "New objective data showing improved daytime saturation is clinically relevant and should prompt reassessment, not being ignored in favor of an unchanged prescription." },
+      { label: "D", text: "Recommend increasing daytime oxygen flow despite the improved saturation results", correct: false, tag: null, rationale: "Increasing oxygen when saturation is already improved and above target doesn't align with the new data, which suggests daytime needs may actually be decreasing." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A recommendation to add a long-acting muscarinic antagonist (LAMA) to a COPD patient's regimen would typically be based on:",
+    options: [
+      { label: "A", text: "Ongoing symptoms or exacerbation risk despite current therapy, per stepwise COPD management guidelines", correct: true, tag: null, rationale: "LAMAs are added as part of stepwise COPD management when a patient has persistent symptoms or continued exacerbation risk despite their current regimen, following guideline-based escalation principles." },
+      { label: "B", text: "As the very first medication for any newly diagnosed COPD patient regardless of symptom severity", correct: false, tag: null, rationale: "Initial COPD therapy choice depends on symptom burden and exacerbation risk classification — a LAMA isn't automatically the universal first choice for every newly diagnosed patient regardless of severity." },
+      { label: "C", text: "Treating acute bronchospasm during a severe exacerbation as the primary rescue therapy", correct: false, tag: null, rationale: "LAMAs are maintenance medications with a longer onset of action, not the primary rescue therapy for acute bronchospasm during a severe exacerbation, which relies on short-acting bronchodilators." },
+      { label: "D", text: "A treatment specific to asthma, not COPD", correct: false, tag: null, rationale: "LAMAs are a core maintenance therapy class specifically used in COPD management, not primarily an asthma-specific treatment." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.F — Evidence-Based Practice",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "The PROSEVA trial provided key evidence supporting which specific ARDS management intervention?",
+    options: [
+      { label: "A", text: "Prone positioning in moderate-to-severe ARDS", correct: true, tag: null, rationale: "The PROSEVA trial demonstrated a significant mortality benefit with early, prolonged prone positioning in patients with moderate-to-severe ARDS, establishing it as a key evidence-based intervention in current management guidelines." },
+      { label: "B", text: "High tidal volume ventilation", correct: false, tag: null, rationale: "PROSEVA studied prone positioning, not tidal volume strategy — the ARDSNet trial is the landmark study associated with tidal volume findings." },
+      { label: "C", text: "Early tracheostomy timing", correct: false, tag: null, rationale: "PROSEVA's focus was specifically on prone positioning, not tracheostomy timing, which has been studied in separate trials." },
+      { label: "D", text: "Corticosteroid dosing in ARDS", correct: false, tag: null, rationale: "PROSEVA specifically evaluated prone positioning, not corticosteroid protocols, which have been studied in other trials." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "application",
+    patient: "Adult · General",
+    stem: "During an interprofessional rapid response team activation for a deteriorating patient, the RT notices the patient's oxygen saturation continues to fall despite escalating oxygen therapy.",
+    question: "What is the most appropriate RT action in this team-based emergency response?",
+    options: [
+      { label: "A", text: "Clearly communicate the ongoing desaturation trend and current oxygen therapy status to the team, and advocate for further escalation (e.g., NIV or intubation) as clinically indicated", correct: true, tag: null, rationale: "Effective interprofessional emergency response depends on clear, closed-loop communication — the RT's role includes clearly reporting respiratory status trends and advocating for appropriate escalation based on their clinical assessment, contributing their specific expertise to the team's decision-making." },
+      { label: "B", text: "Continue current therapy silently without communicating the ongoing trend to the team", correct: false, tag: null, rationale: "Silent, non-communicative behavior during a team emergency response undermines effective care — clear communication of clinical findings is an essential part of the RT's role in this setting." },
+      { label: "C", text: "Wait for explicit instruction before taking any independent clinical action within their scope of practice", correct: false, tag: null, rationale: "While team coordination matters, RTs have independent clinical judgment within their scope of practice and should proactively communicate concerning findings rather than waiting passively." },
+      { label: "D", text: "Leave the room to attend to other patients without addressing the current emergency", correct: false, tag: null, rationale: "This would be inappropriate abandonment of an active emergency response situation requiring the RT's ongoing involvement." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.H — Assist with Physician Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "During assistance with a chest tube insertion for pneumothorax, the RT's role typically includes:",
+    options: [
+      { label: "A", text: "Preparing and connecting the pleural drainage system, and monitoring the patient's respiratory status and drainage system function throughout", correct: true, tag: null, rationale: "The RT commonly assists by preparing the pleural drainage/suction system, ensuring proper setup and function, and monitoring the patient's respiratory status and the drainage system (e.g., water seal, air leak, drainage amount) during and after the procedure." },
+      { label: "B", text: "Performing the chest tube insertion independently without physician involvement", correct: false, tag: null, rationale: "Chest tube insertion is typically performed by a physician or other credentialed provider, with the RT playing a supportive role in equipment preparation and monitoring, depending on institutional scope of practice." },
+      { label: "C", text: "No specific role related to the pleural drainage system", correct: false, tag: null, rationale: "The RT typically has a specific, active role in preparing and monitoring the pleural drainage system, not simply being uninvolved with this equipment." },
+      { label: "D", text: "Only documenting vital signs before the procedure begins", correct: false, tag: null, rationale: "The RT's role extends beyond pre-procedure documentation to active assistance with the drainage system and ongoing monitoring throughout and after the procedure." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient being discharged after a COPD exacerbation asks the RT what warning signs should prompt them to seek medical attention again.",
+    question: "What is the most appropriate education to provide?",
+    options: [
+      { label: "A", text: "Specific warning signs such as increasing dyspnea beyond their baseline, change in sputum color/amount, fever, or worsening oxygen needs, along with clear instructions on who to contact and when", correct: true, tag: null, rationale: "Providing specific, actionable warning signs (rather than vague guidance) along with clear instructions on when and how to seek help empowers the patient to recognize early exacerbation signs and seek timely care, which can reduce readmission risk." },
+      { label: "B", text: "Tell the patient to simply \"come back if you feel worse\" with no specific guidance", correct: false, tag: null, rationale: "Vague guidance like this is less actionable and less likely to result in timely recognition of true warning signs compared to specific, concrete education." },
+      { label: "C", text: "Avoid discussing warning signs to prevent causing anxiety", correct: false, tag: null, rationale: "Withholding this important safety information isn't appropriate — clear education about warning signs is a standard, important part of safe discharge planning." },
+      { label: "D", text: "Tell the patient warning signs are not relevant since they've already been treated", correct: false, tag: null, rationale: "Recognizing early warning signs of a FUTURE exacerbation remains relevant even after successful treatment of the current episode — COPD is a chronic condition with ongoing exacerbation risk." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A CT pulmonary angiogram (CTPA) report describing a \"filling defect\" in a segmental pulmonary artery is most consistent with:",
+    options: [
+      { label: "A", text: "Pulmonary embolism at that location", correct: true, tag: null, rationale: "A \"filling defect\" on CTPA describes an area where contrast fails to fully opacify the vessel, characteristic of a clot (embolus) obstructing that segment of the pulmonary artery — this is the classic CTPA finding used to diagnose PE." },
+      { label: "B", text: "Normal pulmonary vasculature", correct: false, tag: null, rationale: "A filling defect is specifically an ABNORMAL finding on CTPA, not a normal vascular appearance." },
+      { label: "C", text: "Pneumonia", correct: false, tag: null, rationale: "Pneumonia would typically show as parenchymal consolidation/infiltrate on imaging, not a vascular \"filling defect,\" which specifically describes an intraluminal vessel finding." },
+      { label: "D", text: "Pleural effusion", correct: false, tag: null, rationale: "Pleural effusion is a distinct finding (fluid in the pleural space) from a vascular filling defect, which specifically indicates an intravascular obstruction." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Tracheal deviation AWAY from the affected side is most classically associated with:",
+    options: [
+      { label: "A", text: "Tension pneumothorax", correct: true, tag: null, rationale: "Tension pneumothorax causes progressive pressure buildup on the affected side, pushing mediastinal structures — including the trachea — toward the OPPOSITE, unaffected side, a classic and important physical exam finding in this emergency." },
+      { label: "B", text: "Simple, uncomplicated pneumothorax", correct: false, tag: null, rationale: "A simple, small pneumothorax without tension physiology typically does NOT cause significant tracheal deviation — this finding is specifically associated with the pressure buildup of a TENSION pneumothorax." },
+      { label: "C", text: "Normal lung anatomy", correct: false, tag: null, rationale: "Tracheal deviation is an abnormal finding, not a feature of normal anatomy." },
+      { label: "D", text: "Bilateral, symmetric lung disease", correct: false, tag: null, rationale: "Tracheal deviation reflects an asymmetric process pushing the mediastinum to one side — bilateral symmetric disease wouldn't cause this unilateral shift." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A significantly elevated white blood cell count with a left shift (increased band/immature neutrophils) on a CBC most strongly suggests:",
+    options: [
+      { label: "A", text: "An acute bacterial infection with a robust immune response", correct: true, tag: null, rationale: "A left shift, meaning increased immature neutrophil forms (bands) released from the bone marrow, reflects the body ramping up production in response to an acute infectious/inflammatory process, classically bacterial infection." },
+      { label: "B", text: "A chronic, stable condition with no active process", correct: false, tag: null, rationale: "A left shift specifically indicates an ACTIVE, acute process driving increased white cell production, not a chronic stable state." },
+      { label: "C", text: "Anemia", correct: false, tag: null, rationale: "This CBC finding relates to white blood cells, not red blood cell count/hemoglobin, which is what defines anemia." },
+      { label: "D", text: "A normal, expected finding requiring no clinical correlation", correct: false, tag: null, rationale: "A significant left shift is a notable finding that should be clinically correlated with the patient's presentation, not dismissed as routine." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a chest CT report describing \"honeycombing\" and \"traction bronchiectasis\" in a basal, peripheral distribution.",
+    question: "This imaging pattern is most consistent with:",
+    options: [
+      { label: "A", text: "Usual interstitial pneumonia (UIP) pattern, commonly associated with idiopathic pulmonary fibrosis", correct: true, tag: null, rationale: "Honeycombing and traction bronchiectasis in a basal, peripheral, subpleural distribution is the classic radiographic description of a UIP pattern, strongly associated with idiopathic pulmonary fibrosis." },
+      { label: "B", text: "Normal lung parenchyma", correct: false, tag: null, rationale: "Honeycombing and traction bronchiectasis are specific, abnormal fibrotic findings, not features of normal lung tissue." },
+      { label: "C", text: "Acute pneumonia", correct: false, tag: null, rationale: "Acute pneumonia typically shows as consolidation/infiltrate on imaging, not the chronic fibrotic pattern of honeycombing and traction bronchiectasis." },
+      { label: "D", text: "Pneumothorax", correct: false, tag: null, rationale: "Pneumothorax shows as absence of lung markings with a visible pleural line, an entirely different finding from the fibrotic pattern described here." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient reports orthopnea, needing to sleep propped up on 3 pillows, along with occasional episodes of waking up suddenly gasping for air.",
+    question: "These symptoms (orthopnea and paroxysmal nocturnal dyspnea) are most classically associated with:",
+    options: [
+      { label: "A", text: "Left-sided heart failure with pulmonary congestion", correct: true, tag: null, rationale: "Orthopnea (dyspnea when lying flat) and paroxysmal nocturnal dyspnea are classic symptoms of left-sided heart failure, where lying flat redistributes fluid and increases venous return, worsening pulmonary congestion." },
+      { label: "B", text: "Simple, uncomplicated asthma", correct: false, tag: null, rationale: "While asthma can have nocturnal symptoms, orthopnea and PND specifically are more classically and strongly associated with cardiac (left heart failure) causes." },
+      { label: "C", text: "Normal sleep patterns", correct: false, tag: null, rationale: "These are specific, abnormal symptoms indicating a pathologic process, not normal sleep." },
+      { label: "D", text: "Peripheral neuropathy", correct: false, tag: null, rationale: "These symptoms are respiratory/cardiac in nature and unrelated to peripheral neuropathy." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "application",
+    patient: "Adult · General",
+    stem: "An RT is performing spirometry and notices the patient's flow-volume loop shows a plateau in both inspiratory and expiratory limbs, consistent with a fixed pattern.",
+    question: "A fixed obstruction pattern on flow-volume loop, unlike a variable extrathoracic or intrathoracic pattern, is most suggestive of:",
+    options: [
+      { label: "A", text: "A fixed anatomical narrowing, such as tracheal stenosis, that limits flow consistently regardless of the phase of breathing", correct: true, tag: null, rationale: "A fixed obstruction (e.g., tracheal stenosis, a fixed tumor) limits airflow consistently during both inspiration and expiration, producing the characteristic plateau on both limbs of the flow-volume loop, distinct from variable patterns that change depending on intra/extrathoracic pressure dynamics during different phases of breathing." },
+      { label: "B", text: "Normal airway function", correct: false, tag: null, rationale: "A fixed obstruction pattern is an abnormal finding, not a feature of normal spirometry." },
+      { label: "C", text: "Simple asthma exacerbation", correct: false, tag: null, rationale: "Asthma typically shows a variable, not fixed, obstructive pattern that can fluctuate — a fixed pattern points more toward a structural, unchanging narrowing." },
+      { label: "D", text: "A restrictive lung disease process", correct: false, tag: null, rationale: "Restrictive disease shows a different pattern (reduced volumes with a normal or increased FEV1/FVC ratio), not the fixed flow plateau described here, which is specifically an obstructive pattern finding." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A DLCO (diffusion capacity) test that is reduced out of proportion to lung volume reduction is most suggestive of:",
+    options: [
+      { label: "A", text: "A primary gas exchange/diffusion problem, such as emphysema or pulmonary vascular disease, rather than a purely restrictive process", correct: true, tag: null, rationale: "When DLCO is disproportionately reduced compared to lung volumes, it points toward a problem with the actual gas exchange surface or pulmonary vasculature (like emphysema or pulmonary vascular disease), rather than a purely restrictive process where DLCO reduction would typically be more proportional to volume loss." },
+      { label: "B", text: "Normal lung function", correct: false, tag: null, rationale: "A disproportionately reduced DLCO is an abnormal finding requiring further interpretation, not a normal result." },
+      { label: "C", text: "A purely obstructive pattern with normal gas exchange", correct: false, tag: null, rationale: "This describes a specific pattern where diffusion is significantly impaired — this isn't simply an obstructive pattern with intact/normal gas exchange." },
+      { label: "D", text: "A technical error requiring no clinical correlation", correct: false, tag: null, rationale: "While technical factors should always be considered, this described pattern (disproportionate DLCO reduction) is a recognized, clinically meaningful finding, not automatically dismissed as error." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient with longstanding COPD reports new, progressive hoarseness over several weeks, along with unintentional weight loss, without a clear infectious cause.",
+    question: "What additional evaluation should the RT recommend?",
+    options: [
+      { label: "A", text: "Recommend further evaluation for a possible malignancy or other structural cause, given the new hoarseness and weight loss beyond the patient's usual COPD symptoms", correct: true, tag: null, rationale: "New hoarseness combined with unintentional weight loss in a patient with a significant smoking-related history (implied by COPD) are red flag symptoms that warrant evaluation for possible malignancy (e.g., lung cancer with recurrent laryngeal nerve involvement) or another structural process, not simply attributed to routine COPD progression." },
+      { label: "B", text: "Recommend no further workup since these symptoms are expected with COPD", correct: false, tag: null, rationale: "New hoarseness and unintentional weight loss are NOT typical, expected COPD symptoms — they represent red flags warranting further evaluation beyond the baseline condition." },
+      { label: "C", text: "Recommend increasing the patient's current COPD inhaler dose to address the new symptoms", correct: false, tag: null, rationale: "These new symptoms (hoarseness, weight loss) aren't addressed by adjusting COPD inhaler therapy — they require separate diagnostic evaluation for their underlying cause." },
+      { label: "D", text: "Recommend reassurance only, with follow-up in 6 months", correct: false, tag: null, rationale: "These red flag symptoms warrant more prompt evaluation, not routine reassurance with a delayed follow-up interval." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A jet nebulizer's aerosol output and particle size are most directly influenced by:",
+    options: [
+      { label: "A", text: "The flow rate of gas powering the nebulizer and the specific design of the nebulizer device", correct: true, tag: null, rationale: "Jet nebulizer performance (particle size distribution, output rate) is directly influenced by the driving gas flow rate and the specific nebulizer's internal design, both of which affect the aerosol characteristics delivered to the patient." },
+      { label: "B", text: "The color of the medication being nebulized", correct: false, tag: null, rationale: "Medication color has no bearing on aerosol physics or nebulizer performance characteristics." },
+      { label: "C", text: "The time of day the treatment is given", correct: false, tag: null, rationale: "Time of day doesn't affect the physical aerosol generation process of a jet nebulizer." },
+      { label: "D", text: "The patient's insurance coverage", correct: false, tag: null, rationale: "This is an administrative factor entirely unrelated to the physical mechanics of aerosol generation." },
+    ],
+  },
+  {
+    domain: "II",
+    subdomain: "II.A — Assemble/Troubleshoot Devices",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A vibrating mesh nebulizer is producing significantly less aerosol output than expected, though the device powers on normally.",
+    question: "What should the RT check first?",
+    options: [
+      { label: "A", text: "Whether the mesh aperture plate is clogged or damaged, and whether the medication is properly loaded in the reservoir", correct: true, tag: null, rationale: "Vibrating mesh nebulizers rely on a fine mesh with tiny apertures — clogging or damage to this mesh, or improper medication loading, are common, correctable causes of reduced aerosol output that should be checked before assuming full device failure." },
+      { label: "B", text: "Assume the device is completely non-functional and discard it immediately without further troubleshooting", correct: false, tag: null, rationale: "Jumping to discarding the device skips simple troubleshooting steps (checking the mesh, medication loading) that commonly resolve output issues." },
+      { label: "C", text: "Increase the medication dose significantly to compensate", correct: false, tag: null, rationale: "Increasing dose doesn't address a likely mechanical/loading issue with the device — the underlying cause should be identified and corrected first." },
+      { label: "D", text: "Assume the issue is with the patient's technique, not the device", correct: false, tag: null, rationale: "The device is 'producing less aerosol output' as described — this points to an equipment-related cause to investigate first, not immediately blaming patient technique." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A supraglottic airway device (such as a laryngeal mask airway) differs from an endotracheal tube in that it:",
+    options: [
+      { label: "A", text: "Sits above the vocal cords rather than passing through them into the trachea, providing a less definitive but faster-to-place airway option", correct: true, tag: null, rationale: "Supraglottic devices like the LMA sit above the glottic opening rather than being inserted through the vocal cords into the trachea, making them faster and often easier to place, though they don't provide the same level of airway protection/seal as a properly placed endotracheal tube." },
+      { label: "B", text: "Provides a more definitive, protected airway than an ET tube", correct: false, tag: null, rationale: "This is the opposite — an ET tube, positioned within the trachea with a cuff seal, generally provides more definitive airway protection than a supraglottic device." },
+      { label: "C", text: "Is inserted directly into the trachea, similar to an ET tube", correct: false, tag: null, rationale: "Supraglottic devices specifically do NOT enter the trachea — they sit above the vocal cords, which is the key anatomical difference from an ET tube." },
+      { label: "D", text: "Is used exclusively for long-term ventilation", correct: false, tag: null, rationale: "Supraglottic devices are typically used for short-term, often emergency or procedural airway management, not long-term ventilation, which typically requires an ET tube or tracheostomy." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on assist-control ventilation shows a respiratory rate significantly higher than the set backup rate, with each breath being patient-triggered, and the patient appears comfortable with no signs of distress.",
+    question: "How should the RT interpret this finding?",
+    options: [
+      { label: "A", text: "The patient is breathing above the set rate on their own initiative, which is expected and generally acceptable behavior in assist-control mode as long as the patient remains comfortable and stable", correct: true, tag: null, rationale: "In assist-control mode, the set rate is a MINIMUM/backup rate — patients can and often do trigger additional breaths above this rate. As long as the patient appears comfortable without distress and vital signs remain stable, this is an expected feature of the mode, not necessarily a problem requiring intervention." },
+      { label: "B", text: "This represents a ventilator malfunction requiring immediate replacement", correct: false, tag: null, rationale: "A rate above the set backup rate with patient-triggered breaths is a normal, expected feature of assist-control mode, not a malfunction." },
+      { label: "C", text: "The set rate must be immediately increased to match the patient's spontaneous rate", correct: false, tag: null, rationale: "Since the patient appears comfortable and this is expected mode behavior, there's no immediate need to change the set rate simply because the patient is breathing above it." },
+      { label: "D", text: "This indicates the patient should be immediately extubated", correct: false, tag: null, rationale: "A patient triggering breaths above the set rate comfortably doesn't automatically indicate readiness for extubation — that requires separate, specific assessment (SBT, RSBI, etc.)." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Automatic tube compensation (ATC), a feature on some ventilators, is designed to:",
+    options: [
+      { label: "A", text: "Compensate for the resistance imposed by the artificial airway itself, reducing the patient's work of breathing related specifically to the ET tube", correct: true, tag: null, rationale: "ATC calculates and compensates for the resistive work imposed by the endotracheal or tracheostomy tube itself, helping offset that specific component of the patient's work of breathing, which can be significant especially with smaller tube diameters." },
+      { label: "B", text: "Automatically adjust the FiO2 based on oxygen saturation", correct: false, tag: null, rationale: "This describes a different feature (closed-loop oxygen titration), not ATC, which specifically addresses airway resistance compensation." },
+      { label: "C", text: "Automatically extubate the patient when ready", correct: false, tag: null, rationale: "ATC doesn't perform extubation — that remains a clinical decision requiring separate assessment, not an automated ventilator function." },
+      { label: "D", text: "Eliminate the need for any pressure support during weaning", correct: false, tag: null, rationale: "ATC compensates specifically for tube resistance and can be used alongside, not as a complete replacement for, other pressure support strategies during weaning." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient with chronic hypoxemic respiratory failure on home oxygen has follow-up ABG results showing a stable PaO2 of 62 mmHg at their current oxygen flow.",
+    question: "Given standard long-term oxygen therapy criteria, what does this finding suggest?",
+    options: [
+      { label: "A", text: "This PaO2 level is generally within the range supporting continued long-term oxygen therapy eligibility per standard criteria (typically PaO2 ≤ 55 mmHg, or ≤ 59 mmHg with certain comorbidities)", correct: false, tag: null, rationale: "A PaO2 of 62 mmHg is actually ABOVE the typical thresholds (≤55 or ≤59 with comorbidities) used to qualify for long-term oxygen therapy — this value would generally not meet standard LTOT criteria on its own." },
+      { label: "B", text: "This PaO2 value is above the typical threshold used to qualify for standard long-term oxygen therapy, so continued need should be reassessed with the physician", correct: true, tag: null, rationale: "Standard LTOT qualifying criteria generally require a PaO2 ≤55 mmHg (or ≤59 mmHg with certain comorbidities like cor pulmonale) — a stable PaO2 of 62 mmHg is above this threshold, meaning reassessment of the patient's continued oxygen therapy need and criteria may be warranted with the physician." },
+      { label: "C", text: "This finding has no relevance to oxygen therapy decisions", correct: false, tag: null, rationale: "PaO2 values are directly relevant to LTOT eligibility criteria and should inform ongoing oxygen therapy decisions." },
+      { label: "D", text: "This value indicates the patient needs significantly MORE oxygen immediately", correct: false, tag: null, rationale: "A PaO2 of 62 mmHg is a reasonably adequate value, not one indicating an urgent need for significantly increased oxygen therapy." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A recommendation to add a leukotriene receptor antagonist (e.g., montelukast) to an asthma patient's regimen would typically be considered:",
+    options: [
+      { label: "A", text: "As an alternative or add-on controller option, particularly useful in patients with an allergic/exercise-induced component or aspirin-sensitive asthma", correct: true, tag: null, rationale: "Leukotriene receptor antagonists serve as an alternative or add-on maintenance option in asthma management, with particular utility in patients with allergic rhinitis overlap, exercise-induced symptoms, or aspirin-exacerbated respiratory disease." },
+      { label: "B", text: "As the definitive first-line rescue medication for acute asthma attacks", correct: false, tag: null, rationale: "Leukotriene receptor antagonists are maintenance/controller medications, not fast-acting rescue therapy for acute attacks, which requires short-acting bronchodilators." },
+      { label: "C", text: "As a medication with no role in asthma management", correct: false, tag: null, rationale: "Leukotriene receptor antagonists do have an established, if more limited compared to ICS, role as an alternative/add-on controller option in asthma management." },
+      { label: "D", text: "As a treatment specific to COPD, not asthma", correct: false, tag: null, rationale: "Leukotriene receptor antagonists are specifically an asthma management medication, not a primary COPD treatment." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.F — Evidence-Based Practice",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A hospital is updating its sepsis management protocol based on current Surviving Sepsis Campaign guidelines.",
+    question: "Which of the following reflects a core, evidence-based recommendation from these guidelines?",
+    options: [
+      { label: "A", text: "Prompt recognition, early broad-spectrum antibiotics, and appropriate fluid resuscitation, ideally initiated within the first hour of sepsis recognition", correct: true, tag: null, rationale: "The Surviving Sepsis Campaign guidelines emphasize the importance of rapid recognition and early intervention — prompt antibiotics and fluid resuscitation within the so-called \"golden hour\" are core, evidence-based recommendations shown to improve sepsis outcomes." },
+      { label: "B", text: "Delaying antibiotic administration until definitive culture results are available", correct: false, tag: null, rationale: "This is the OPPOSITE of the evidence-based recommendation — antibiotics should be started promptly based on clinical suspicion, not delayed for culture confirmation, given the time-sensitive nature of sepsis." },
+      { label: "C", text: "Avoiding fluid resuscitation entirely in septic patients", correct: false, tag: null, rationale: "Appropriate fluid resuscitation is a core component of early sepsis management per current guidelines, not something to avoid." },
+      { label: "D", text: "Waiting 24 hours before initiating any treatment to observe the patient's natural course", correct: false, tag: null, rationale: "This directly contradicts the evidence-based emphasis on prompt, early intervention in sepsis management, where delays are associated with worse outcomes." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "During an emergency airway management situation with a known or suspected difficult airway, having a structured difficult airway algorithm/protocol readily available primarily helps by:",
+    options: [
+      { label: "A", text: "Providing a clear, pre-established sequence of escalating interventions, reducing decision paralysis and improving team coordination during a high-stress emergency", correct: true, tag: null, rationale: "Structured difficult airway algorithms provide teams with a clear, practiced sequence of steps to follow, which reduces cognitive load and decision-making delays during the high-stress, time-critical nature of a difficult airway emergency, improving coordination and outcomes." },
+      { label: "B", text: "Eliminating the need for any equipment preparation", correct: false, tag: null, rationale: "An algorithm doesn't eliminate the need for having appropriate equipment ready — it guides the sequence of actions, but preparation remains essential." },
+      { label: "C", text: "Guaranteeing successful intubation on the first attempt", correct: false, tag: null, rationale: "An algorithm improves structured decision-making but doesn't guarantee first-attempt success — it helps guide the team through escalating options if initial attempts are unsuccessful." },
+      { label: "D", text: "Replacing the need for a skilled, experienced airway operator", correct: false, tag: null, rationale: "An algorithm supports but doesn't replace the need for skilled personnel — it's a decision-support tool used alongside clinical expertise, not instead of it." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.H — Assist with Physician Procedures",
+    level: "application",
+    patient: "Adult · General",
+    stem: "The RT is assisting with an elective cardioversion procedure for a patient with atrial fibrillation, under moderate sedation.",
+    question: "What is an important RT responsibility during this procedure?",
+    options: [
+      { label: "A", text: "Ensuring the patient is adequately preoxygenated, monitoring oxygenation and ventilation continuously throughout the sedation, and being prepared to support the airway if needed", correct: true, tag: null, rationale: "As with other moderate sedation procedures, ensuring adequate preoxygenation and continuous respiratory monitoring throughout is a key RT responsibility, given the respiratory depression risk associated with sedation — being prepared to intervene if the patient's airway or ventilation is compromised is essential." },
+      { label: "B", text: "Operating the cardioversion defibrillator controls independently", correct: false, tag: null, rationale: "Operating the cardioversion device itself is typically the responsibility of the physician/credentialed provider performing the procedure, not the RT, whose focus is on respiratory monitoring and support." },
+      { label: "C", text: "No specific respiratory monitoring responsibility during this cardiac procedure", correct: false, tag: null, rationale: "Despite being a cardiac procedure, the sedation involved carries real respiratory risk, making RT monitoring an important, active responsibility, not something to overlook." },
+      { label: "D", text: "Only documenting the cardiac rhythm before and after the procedure", correct: false, tag: null, rationale: "While rhythm documentation may occur, the RT's core responsibility centers on respiratory monitoring and airway readiness given the sedation risk, not primarily cardiac rhythm documentation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "When educating a patient on proper dry powder inhaler (DPI) technique, which instruction is most important?",
+    options: [
+      { label: "A", text: "Inhale quickly and forcefully to ensure adequate medication dispersal, unlike the slow inhalation technique used with an MDI", correct: true, tag: null, rationale: "Unlike MDIs, which require slow inhalation, DPIs rely on the patient's own inspiratory effort to disperse and aerosolize the powder medication, making a quick, forceful inhalation the correct technique — this is a key, often confusing distinction for patients switching between device types." },
+      { label: "B", text: "Inhale slowly and gently, the same technique used for an MDI", correct: false, tag: null, rationale: "This is incorrect for a DPI — slow, gentle inhalation is the MDI technique; DPIs specifically require a quick, forceful inhalation to properly disperse the powder." },
+      { label: "C", text: "Always use a spacer device with a DPI", correct: false, tag: null, rationale: "Spacers are used with MDIs, not DPIs — a DPI's design doesn't accommodate or require a spacer device." },
+      { label: "D", text: "Exhale fully into the device before inhaling the medication", correct: false, tag: null, rationale: "Exhaling into a DPI risks introducing moisture that can clump the powder medication — patients should exhale away from the device before inhaling the dose." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "A patient on mechanical ventilation shows worsening oxygenation despite increasing FiO2 to 100%, with the PaO2 remaining persistently low.",
+    question: "This pattern of failing to improve despite maximal FiO2 is most suggestive of:",
+    options: [
+      { label: "A", text: "A significant intrapulmonary shunt, where blood bypasses ventilated alveoli entirely, making it unresponsive to increased inspired oxygen concentration", correct: true, tag: null, rationale: "When oxygenation fails to improve despite maximal FiO2, this classically indicates a large shunt (blood passing through unventilated/collapsed alveoli or an anatomical shunt) rather than a simple V/Q mismatch or diffusion problem, both of which typically show at least some improvement with increased FiO2." },
+      { label: "B", text: "Simple hypoventilation as the primary problem", correct: false, tag: null, rationale: "Hypoventilation-related hypoxemia typically responds well to increased FiO2 — the failure to improve despite maximal oxygen points away from simple hypoventilation as the primary mechanism." },
+      { label: "C", text: "A normal, expected response to ventilator therapy", correct: false, tag: null, rationale: "Failing to improve oxygenation despite maximal FiO2 is a significant, abnormal finding requiring urgent attention, not an expected therapeutic response." },
+      { label: "D", text: "Excessive oxygen delivery requiring immediate FiO2 reduction", correct: false, tag: null, rationale: "The problem described is inadequate, not excessive, oxygenation — reducing FiO2 would worsen, not improve, this patient's hypoxemia." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A 6-minute walk test shows the patient desaturated from 96% to 84% with exertion, accompanied by significant dyspnea, though they completed the full distance expected for their age.",
+    question: "How should this result be interpreted?",
+    options: [
+      { label: "A", text: "Significant exercise-induced desaturation, which is a clinically meaningful finding independent of the distance walked, and may support a need for supplemental oxygen with activity", correct: true, tag: null, rationale: "A desaturation this significant (96% to 84%) during exertion is clinically important regardless of whether the expected distance was achieved — it identifies a specific physiologic problem (exercise-induced hypoxemia) that may warrant ambulatory oxygen therapy, independent of the distance-based performance metric." },
+      { label: "B", text: "A fully normal test result since the expected distance was completed", correct: false, tag: null, rationale: "Completing the expected distance doesn't offset the clinically significant desaturation that occurred — both distance AND oxygenation during the test are important, separate pieces of information." },
+      { label: "C", text: "This desaturation is irrelevant since it only occurred with exertion, not at rest", correct: false, tag: null, rationale: "Exercise-induced desaturation is specifically relevant for functional and oxygen therapy assessment, particularly since many patients' significant activities involve some exertion — this shouldn't be dismissed as irrelevant." },
+      { label: "D", text: "The test should be disregarded entirely due to the desaturation", correct: false, tag: null, rationale: "The desaturation is a valid, important finding FROM the test, not a reason to disregard the test results altogether." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Neonatal · General",
+    stem: "A premature infant on caffeine therapy for apnea of prematurity is noted to have a heart rate consistently above 200 bpm and appears jittery.",
+    question: "What should the RT recommend?",
+    options: [
+      { label: "A", text: "Recommend reassessing the caffeine dose for possible toxicity, given the tachycardia and jitteriness, which can be signs of excessive caffeine levels", correct: true, tag: null, rationale: "Significant tachycardia and jitteriness in an infant on caffeine therapy can be signs of caffeine toxicity — this should prompt dose reassessment (and possibly a caffeine level check) rather than continuing the current dose unchanged." },
+      { label: "B", text: "Recommend increasing the caffeine dose further to improve apnea control", correct: false, tag: null, rationale: "Given signs suggestive of possible toxicity (tachycardia, jitteriness), increasing the dose further would be inappropriate and could worsen these adverse effects." },
+      { label: "C", text: "Recommend no changes since these findings are unrelated to caffeine therapy", correct: false, tag: null, rationale: "Tachycardia and jitteriness are recognized potential adverse effects of caffeine therapy and shouldn't be dismissed as unrelated without consideration." },
+      { label: "D", text: "Recommend immediately and permanently discontinuing all apnea management", correct: false, tag: null, rationale: "The appropriate step is reassessing the caffeine dose specifically, not abandoning apnea management altogether — the infant still needs appropriate treatment for apnea of prematurity, just potentially at an adjusted dose." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "An elevated anion gap on a metabolic panel is most useful for narrowing the differential diagnosis of:",
+    options: [
+      { label: "A", text: "Metabolic acidosis, helping distinguish causes associated with unmeasured anions (e.g., lactic acidosis, ketoacidosis, toxic ingestions) from non-gap causes", correct: true, tag: null, rationale: "The anion gap helps categorize metabolic acidosis into high-gap (from accumulation of unmeasured anions like lactate or ketones) versus normal-gap causes, meaningfully narrowing the differential and guiding further workup." },
+      { label: "B", text: "Respiratory alkalosis exclusively", correct: false, tag: null, rationale: "The anion gap is specifically a tool for characterizing metabolic acidosis, not respiratory alkalosis, which is assessed through PaCO2 and pH trends instead." },
+      { label: "C", text: "Lung volume measurement", correct: false, tag: null, rationale: "The anion gap is a metabolic/chemistry panel calculation, entirely unrelated to lung volume assessment." },
+      { label: "D", text: "Oxygenation status directly", correct: false, tag: null, rationale: "The anion gap doesn't directly reflect oxygenation status — that's assessed via ABG PaO2 or pulse oximetry." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.A — Evaluate Data in the Patient Record",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's chart shows a therapeutic INR of 2.5 while on warfarin for a prior pulmonary embolism, with no new bleeding or clotting symptoms.",
+    question: "This finding should be interpreted as:",
+    options: [
+      { label: "A", text: "Appropriate anticoagulation control within the target therapeutic range for this indication", correct: true, tag: null, rationale: "An INR of 2.5 falls within the typical therapeutic target range (2-3) for warfarin anticoagulation following a PE, indicating the medication is appropriately dosed and controlled, not requiring adjustment based on this value alone." },
+      { label: "B", text: "Dangerously low anticoagulation requiring an urgent dose increase", correct: false, tag: null, rationale: "An INR of 2.5 is within, not below, the typical therapeutic target range for this indication — it doesn't indicate under-anticoagulation requiring urgent adjustment." },
+      { label: "C", text: "Dangerously high anticoagulation requiring immediate reversal", correct: false, tag: null, rationale: "This value is within the normal therapeutic target, not an excessively high, dangerous level requiring reversal." },
+      { label: "D", text: "A finding with no relevance to the patient's respiratory history", correct: false, tag: null, rationale: "Given the patient's PE history, their anticoagulation status is directly relevant to their ongoing respiratory/vascular care, not irrelevant." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.B — Perform Clinical Assessment",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "The tripod position (leaning forward, hands on knees) commonly assumed by patients in respiratory distress helps by:",
+    options: [
+      { label: "A", text: "Optimizing accessory muscle mechanics and improving diaphragmatic efficiency by fixing the shoulder girdle", correct: true, tag: null, rationale: "The tripod position fixes the shoulder girdle in place, allowing accessory muscles (like the pectoralis) to assist respiration more effectively, while also optimizing the length-tension relationship of the diaphragm, together reducing the work of breathing during distress." },
+      { label: "B", text: "Directly increasing oxygen saturation through the position alone", correct: false, tag: null, rationale: "The tripod position helps mechanically ease the work of breathing, but doesn't directly increase oxygen saturation on its own — any resulting improvement is secondary to reduced respiratory effort." },
+      { label: "C", text: "Being a purely voluntary, non-physiological behavior with no mechanical benefit", correct: false, tag: null, rationale: "This position has a real, recognized mechanical benefit for accessory muscle use and diaphragmatic function — it's not simply arbitrary or without physiological basis." },
+      { label: "D", text: "Worsening the work of breathing in most patients", correct: false, tag: null, rationale: "This is the opposite of the tripod position's actual effect — it typically helps EASE, not worsen, the work of breathing in respiratory distress." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.C — Perform Procedures to Gather Clinical Information",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Maximum expiratory pressure (MEP) testing is primarily used to assess:",
+    options: [
+      { label: "A", text: "Expiratory muscle strength, which is relevant for evaluating cough effectiveness and airway clearance ability", correct: true, tag: null, rationale: "MEP specifically measures the strength of expiratory muscles, which is clinically relevant for assessing a patient's ability to generate an effective cough and clear secretions, complementing MIP, which assesses inspiratory muscle strength." },
+      { label: "B", text: "Inspiratory muscle strength exclusively", correct: false, tag: null, rationale: "This describes MIP (maximum inspiratory pressure), not MEP, which specifically assesses expiratory, not inspiratory, muscle strength." },
+      { label: "C", text: "Lung diffusion capacity", correct: false, tag: null, rationale: "Diffusion capacity is assessed via DLCO testing, unrelated to MEP, which measures expiratory muscle strength/pressure generation." },
+      { label: "D", text: "Airway resistance", correct: false, tag: null, rationale: "MEP measures muscle-generated pressure, not airway resistance, which is assessed through different pulmonary function parameters." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's pulmonary function test shows both a reduced FEV1/FVC ratio AND reduced total lung capacity on plethysmography.",
+    question: "This combination of findings suggests:",
+    options: [
+      { label: "A", text: "A mixed obstructive-restrictive ventilatory defect, which can occur when both processes coexist", correct: true, tag: null, rationale: "A reduced FEV1/FVC ratio typically indicates obstruction, while a reduced TLC indicates restriction — when both are present together, this suggests a mixed defect, where both obstructive and restrictive processes are contributing simultaneously, sometimes seen in combined conditions or advanced disease." },
+      { label: "B", text: "A purely obstructive pattern with no restrictive component", correct: false, tag: null, rationale: "A purely obstructive pattern would typically show normal or even elevated TLC (from hyperinflation), not a REDUCED TLC as described here — the reduced TLC points toward an additional restrictive component." },
+      { label: "C", text: "A purely restrictive pattern with no obstructive component", correct: false, tag: null, rationale: "A purely restrictive pattern would typically show a preserved or elevated FEV1/FVC ratio, not a REDUCED ratio as described — the reduced ratio points toward an additional obstructive component." },
+      { label: "D", text: "Completely normal lung function", correct: false, tag: null, rationale: "Both findings described are abnormal — a reduced ratio and reduced TLC together indicate a real, mixed ventilatory defect, not normal function." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.D — Evaluate Procedure Results",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A reduced DLCO (diffusion capacity) out of proportion to lung volume reduction is most classically associated with:",
+    options: [
+      { label: "A", text: "A primary gas exchange/diffusion problem, such as emphysema or pulmonary vascular disease, rather than a purely restrictive process", correct: true, tag: null, rationale: "When DLCO is reduced MORE than would be expected from lung volume changes alone, this points toward a specific problem with the gas exchange surface or pulmonary vasculature itself (like emphysema's alveolar destruction or pulmonary vascular disease), rather than simple volume restriction, which would show proportional DLCO reduction." },
+      { label: "B", text: "Simple restrictive lung disease with proportionally reduced everything", correct: false, tag: null, rationale: "In simple restrictive disease, DLCO reduction is typically proportional to volume loss — a DISPROPORTIONATE DLCO reduction points toward a distinct gas exchange/vascular problem instead." },
+      { label: "C", text: "Normal lung function", correct: false, tag: null, rationale: "A disproportionately reduced DLCO is an abnormal finding requiring further evaluation, not a normal result." },
+      { label: "D", text: "Upper airway obstruction exclusively", correct: false, tag: null, rationale: "DLCO reflects gas exchange at the alveolar-capillary level, not upper airway function — this finding doesn't specifically indicate upper airway obstruction." },
+    ],
+  },
+  {
+    domain: "I",
+    subdomain: "I.E — Recommend Diagnostic Procedures",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Exercise-induced bronchoconstriction (EIB) is most appropriately confirmed diagnostically through:",
+    options: [
+      { label: "A", text: "Pre- and post-exercise spirometry, looking for a significant FEV1 decline after a standardized exercise challenge", correct: true, tag: null, rationale: "EIB is confirmed by comparing spirometry before and after a standardized exercise challenge — a significant FEV1 drop (typically ≥10-15%) after exercise supports the diagnosis, distinguishing it from other causes of exertional symptoms." },
+      { label: "B", text: "A single resting spirometry test with no exercise component", correct: false, tag: null, rationale: "Resting spirometry alone often appears normal in EIB — the diagnostic test specifically requires an exercise challenge component to provoke and detect the bronchoconstriction." },
+      { label: "C", text: "Chest X-ray alone", correct: false, tag: null, rationale: "Chest X-ray doesn't assess dynamic airway function and isn't the diagnostic tool for EIB, which requires functional testing (spirometry) around an exercise challenge." },
+      { label: "D", text: "Blood culture", correct: false, tag: null, rationale: "Blood culture assesses for bloodstream infection, entirely unrelated to diagnosing exercise-induced bronchoconstriction." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "An intubated patient's ET tube position is typically confirmed on chest X-ray to be appropriately positioned when the tube tip is located:",
+    options: [
+      { label: "A", text: "Approximately 3-5 cm above the carina", correct: true, tag: null, rationale: "This positioning provides an adequate margin to avoid mainstem intubation (if the tube advances) while keeping the tube well within the trachea (if it retracts slightly), accounting for normal head/neck movement after placement." },
+      { label: "B", text: "Directly at the level of the vocal cords", correct: false, tag: null, rationale: "This is too shallow a position and risks accidental extubation with any patient movement — the tube needs to be positioned well below the cords, in the mid-trachea." },
+      { label: "C", text: "Directly at the carina itself", correct: false, tag: null, rationale: "Positioning directly at the carina risks the tube slipping into a mainstem bronchus with any patient movement — a margin above the carina is needed." },
+      { label: "D", text: "Within the right or left mainstem bronchus", correct: false, tag: null, rationale: "Mainstem bronchus placement is actually a malposition (typically right mainstem) that needs to be corrected, not the target position for a properly placed ET tube." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.A — Maintain a Patent Airway",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient with a fresh tracheostomy (placed 2 days ago) has an accidental decannulation, with the tube coming completely out.",
+    question: "What is the most appropriate immediate action?",
+    options: [
+      { label: "A", text: "Attempt to reinsert a same-size or smaller tracheostomy tube promptly, using appropriate technique, while being prepared for alternative airway management if reinsertion is difficult given the immature tract", correct: true, tag: null, rationale: "A fresh (under about 7-10 days old) tracheostomy tract is not yet mature and can be difficult to safely re-cannulate blindly — prompt, careful reinsertion should be attempted, but the team must be prepared to pursue an alternative airway (such as oral intubation) if reinsertion proves difficult, given the risk of creating a false passage in an immature tract." },
+      { label: "B", text: "Wait several hours before attempting any airway intervention", correct: false, tag: null, rationale: "This is an emergency requiring prompt action to secure the airway — waiting hours risks significant patient harm from inadequate ventilation." },
+      { label: "C", text: "Assume the tract is always easily and safely re-cannulated regardless of how fresh it is", correct: false, tag: null, rationale: "A fresh, immature tracheostomy tract carries real risk of false passage creation during blind reinsertion attempts — this risk should be recognized, not dismissed." },
+      { label: "D", text: "Only attempt oral intubation, with no consideration of tracheostomy reinsertion", correct: false, tag: null, rationale: "Prompt tracheostomy tube reinsertion is often the appropriate first attempt, with oral intubation as a backup if that's unsuccessful or difficult — not necessarily the only approach from the start." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "analysis",
+    patient: "Adult · General",
+    stem: "A patient on mechanical ventilation shows a sudden increase in peak pressure with an unchanged plateau pressure, along with new visible secretions in the ET tube and coarse breath sounds on auscultation.",
+    question: "What is the most appropriate immediate action?",
+    options: [
+      { label: "A", text: "Perform suctioning to clear the secretions, which are the most likely cause of the increased resistance reflected by the isolated peak pressure rise", correct: true, tag: null, rationale: "A rising peak pressure with unchanged plateau pressure isolates the problem to increased airway resistance, and the combination with visible secretions and coarse breath sounds strongly points to secretions as the cause — suctioning directly addresses this likely etiology." },
+      { label: "B", text: "Increase PEEP significantly without addressing the secretions", correct: false, tag: null, rationale: "Increasing PEEP doesn't address a resistance problem from secretions — this wouldn't resolve the underlying cause identified by the clinical findings." },
+      { label: "C", text: "Assume this represents a pneumothorax and prepare for needle decompression", correct: false, tag: null, rationale: "A pneumothorax would typically show a RISE in both peak AND plateau pressure together (a compliance problem), not this isolated peak pressure pattern with visible secretions pointing to a resistance cause instead." },
+      { label: "D", text: "Take no action since this is an expected, benign finding", correct: false, tag: null, rationale: "This is a correctable problem (secretions) that should be addressed, not dismissed as benign and requiring no action." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "Adaptive support ventilation (ASV) is a closed-loop ventilation mode that primarily:",
+    options: [
+      { label: "A", text: "Automatically adjusts respiratory rate and tidal volume/pressure based on the patient's mechanics to target a minimal work-of-breathing pattern, guided by pre-set target minute ventilation", correct: true, tag: null, rationale: "ASV uses a closed-loop algorithm that continuously adjusts rate and tidal volume/pressure settings based on measured respiratory system mechanics, aiming to deliver a target minute ventilation using the combination of settings calculated to minimize the patient's work of breathing." },
+      { label: "B", text: "Requires manual adjustment of every parameter by the clinician for every breath", correct: false, tag: null, rationale: "This is the opposite of ASV's closed-loop design, which specifically automates rate/volume adjustments rather than requiring manual breath-by-breath clinician input." },
+      { label: "C", text: "Is only usable in pediatric patients", correct: false, tag: null, rationale: "ASV is used across various patient populations meeting appropriate clinical criteria, not exclusively in pediatrics." },
+      { label: "D", text: "Eliminates the need for any clinician oversight of ventilator settings", correct: false, tag: null, rationale: "While ASV automates certain adjustments, ongoing clinician oversight and appropriate initial parameter setting remain essential — it doesn't eliminate the need for clinical monitoring." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient's ventilator graphics show a pressure-volume loop with a visible \"beak\" or flattening at the upper portion, suggesting the tidal volume is approaching the upper inflection point of the curve.",
+    question: "What does this finding suggest, and what should be considered?",
+    options: [
+      { label: "A", text: "The current tidal volume may be causing overdistension of already-recruited alveoli, and reducing tidal volume should be considered to avoid this", correct: true, tag: null, rationale: "A beaking pattern at the upper portion of the pressure-volume loop suggests the lung is reaching a point of overdistension at the current tidal volume — recognizing this pattern and considering a tidal volume reduction helps avoid contributing to ventilator-induced lung injury from overdistension." },
+      { label: "B", text: "This indicates the tidal volume should be increased further", correct: false, tag: null, rationale: "Increasing tidal volume further when overdistension is already suggested by the beaking pattern would worsen, not improve, the risk of lung injury." },
+      { label: "C", text: "This is a normal finding requiring no consideration of adjustment", correct: false, tag: null, rationale: "This waveform pattern is a recognized sign worth considering for tidal volume adjustment, not something to dismiss as an unremarkable normal finding." },
+      { label: "D", text: "This finding is unrelated to lung mechanics", correct: false, tag: null, rationale: "This is specifically a lung mechanics-related finding on the pressure-volume relationship, directly relevant to ventilator management decisions." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on long-term oxygen therapy for COPD has follow-up ABG results showing PaO2 consistently around 62 mmHg on room air at rest, with no other significant findings.",
+    question: "Based on standard long-term oxygen therapy criteria, what does this finding suggest?",
+    options: [
+      { label: "A", text: "This PaO2 level is above the typical qualifying threshold for standard long-term oxygen therapy criteria, warranting reassessment of ongoing need absent other qualifying factors", correct: true, tag: null, rationale: "Standard LTOT qualifying criteria are generally PaO2 ≤55 mmHg, or ≤59 mmHg with certain comorbidities like cor pulmonale or polycythemia — a PaO2 of 62 mmHg is above these thresholds, which should prompt reassessment of whether continued LTOT is still indicated, absent other specific qualifying factors." },
+      { label: "B", text: "This finding automatically disqualifies the patient from ever using oxygen again under any circumstance", correct: false, tag: null, rationale: "This is an overstatement — reassessment for continued LTOT eligibility doesn't mean oxygen could never be used again under different circumstances (e.g., with exertion, illness, or if resting PaO2 changes later)." },
+      { label: "C", text: "This finding has no bearing on LTOT eligibility assessment", correct: false, tag: null, rationale: "This finding is directly relevant to LTOT eligibility criteria, which are specifically based on PaO2 thresholds like this one." },
+      { label: "D", text: "This finding indicates the need to increase, not reassess, the oxygen prescription", correct: false, tag: null, rationale: "A PaO2 this level, above typical qualifying thresholds, doesn't support increasing therapy — if anything, it prompts reassessment of continued need." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "A recommendation to add a leukotriene receptor antagonist (e.g., montelukast) to an asthma regimen would most typically be considered:",
+    options: [
+      { label: "A", text: "As an alternative or add-on controller option, particularly useful in patients with concurrent allergic rhinitis or aspirin-sensitive asthma", correct: true, tag: null, rationale: "Leukotriene receptor antagonists serve as an alternative or adjunct controller therapy option in asthma management, with particular usefulness in patients who also have allergic rhinitis or aspirin-exacerbated respiratory disease, given the leukotriene pathway's relevance in those conditions." },
+      { label: "B", text: "As the universal first-line therapy for all asthma severities", correct: false, tag: null, rationale: "Inhaled corticosteroids remain the primary first-line controller therapy for persistent asthma — leukotriene antagonists are more typically an alternative or add-on option, not the universal first choice." },
+      { label: "C", text: "As a rescue medication for acute bronchospasm", correct: false, tag: null, rationale: "Leukotriene receptor antagonists are maintenance/controller medications, not rescue therapy for acute bronchospasm, which requires fast-acting bronchodilators." },
+      { label: "D", text: "Only for use in adult patients, never in pediatric asthma", correct: false, tag: null, rationale: "Leukotriene receptor antagonists are used in appropriate pediatric asthma patients as well, not restricted exclusively to adults." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.E — Modify the Respiratory Care Plan",
+    level: "application",
+    patient: "Adult · ARDS",
+    stem: "A patient with ARDS on mechanical ventilation shows persistent hypoxemia (PaO2/FiO2 of 90) despite optimized lung-protective ventilation and proning, and the team is discussing corticosteroid therapy.",
+    question: "What reflects a core, evidence-based consideration regarding corticosteroid use in this scenario?",
+    options: [
+      { label: "A", text: "Corticosteroids may be considered in appropriate ARDS patients per evolving evidence and guidelines, though the specific timing, dose, and patient selection require careful clinical judgment alongside other management strategies", correct: true, tag: null, rationale: "Evidence and guidelines regarding corticosteroid use in ARDS have evolved over time, with some studies showing benefit in certain populations — however, this requires careful patient selection and isn't a universal, one-size-fits-all recommendation independent of clinical judgment and other concurrent management." },
+      { label: "B", text: "Corticosteroids are absolutely contraindicated in all ARDS patients under any circumstance", correct: false, tag: null, rationale: "This is an overly absolute statement — corticosteroids are considered in appropriate ARDS patients per evolving evidence, not universally contraindicated in every case." },
+      { label: "C", text: "Corticosteroids should replace lung-protective ventilation and proning as the primary management strategy", correct: false, tag: null, rationale: "Corticosteroids, when used, are considered as part of a broader management strategy alongside, not as a replacement for, established lung-protective ventilation and proning strategies." },
+      { label: "D", text: "There is no evidence base at all regarding corticosteroid use in ARDS", correct: false, tag: null, rationale: "This is inaccurate — there is a real, evolving evidence base regarding corticosteroid use in ARDS, even though it continues to be an area of clinical nuance and ongoing study." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.G — High-Risk Situations",
+    level: "application",
+    patient: "Adult · General",
+    stem: "During an emergency airway management situation, the anesthesia and RT team recognize signs suggesting a potentially difficult airway (limited mouth opening, short neck) before attempting intubation.",
+    question: "What is an important RT responsibility in this scenario?",
+    options: [
+      { label: "A", text: "Ensure difficult airway equipment (e.g., video laryngoscope, various sized airways, surgical airway equipment) is immediately available, and communicate proactively with the team about the anticipated difficulty", correct: true, tag: null, rationale: "Recognizing a potentially difficult airway in advance allows the team to prepare appropriate specialized equipment and communicate a clear plan before attempting intubation, rather than being caught unprepared mid-procedure if standard technique proves difficult — this proactive preparation is a key safety responsibility." },
+      { label: "B", text: "Proceed with standard intubation equipment only, with no special preparation", correct: false, tag: null, rationale: "When difficulty is anticipated in advance, proceeding with only standard equipment and no additional preparation misses an opportunity to improve safety and readiness for a challenging airway." },
+      { label: "C", text: "Assume the difficult airway signs are not clinically significant and require no advance preparation", correct: false, tag: null, rationale: "Physical exam findings suggesting a difficult airway are clinically significant predictors that should prompt proactive preparation, not be dismissed as insignificant." },
+      { label: "D", text: "Wait until intubation has already failed before considering additional equipment", correct: false, tag: null, rationale: "Waiting until after a failed attempt to prepare additional equipment loses valuable time in a situation where advance preparation was possible — proactive readiness is the safer approach when difficulty is anticipated." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.I — Patient and Family Education",
+    level: "recall",
+    patient: "Adult · General",
+    stem: null,
+    question: "When educating a patient on proper dry powder inhaler (DPI) technique, which instruction is most important, given how DPIs differ mechanically from MDIs?",
+    options: [
+      { label: "A", text: "Inhale forcefully and deeply, since DPIs rely on the patient's own inspiratory effort to aerosolize and deliver the powder medication, unlike MDIs which propel the dose regardless of inhalation force", correct: true, tag: null, rationale: "Unlike MDIs, which release medication via propellant regardless of how the patient breathes, DPIs specifically require a forceful, deep inhalation to create enough airflow to break up and aerosolize the powder for effective lung deposition — this is the key technique difference patients need to understand." },
+      { label: "B", text: "Inhale slowly and gently, the same technique used for MDIs", correct: false, tag: null, rationale: "This is actually the OPPOSITE of correct DPI technique — DPIs require forceful inhalation, unlike the slow, steady inhalation technique often taught for MDIs." },
+      { label: "C", text: "A spacer is always required for DPI use, just like some MDIs", correct: false, tag: null, rationale: "Spacers are designed for use with MDIs, not DPIs, which have a fundamentally different delivery mechanism relying on the patient's own inspiratory airflow." },
+      { label: "D", text: "Technique doesn't matter for DPIs since they work automatically regardless of inhalation", correct: false, tag: null, rationale: "This is inaccurate — DPI effectiveness is highly dependent on proper technique, specifically a forceful inhalation, unlike a propellant-driven MDI." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "analysis",
+    patient: "Adult · ARDS",
+    stem: "A patient with severe ARDS on mechanical ventilation with FiO2 at 100% and optimized PEEP continues to show minimal improvement in oxygenation despite these maximal conventional settings over several hours.",
+    question: "This pattern of failing to improve despite maximal FiO2 is most suggestive of:",
+    options: [
+      { label: "A", text: "A significant intrapulmonary shunt, where blood is passing through unventilated (collapsed or fluid-filled) alveoli, which increasing FiO2 alone cannot correct", correct: true, tag: null, rationale: "When oxygenation fails to improve significantly even at 100% FiO2, this is a hallmark of true shunt physiology (blood bypassing ventilated alveoli entirely) rather than a simple V/Q mismatch or diffusion problem, since shunted blood never contacts the higher FiO2 gas to begin with — this specifically points toward needing strategies that address lung recruitment (like PEEP optimization, proning) rather than further FiO2 escalation, which is already maximized." },
+      { label: "B", text: "A simple diffusion limitation that will resolve with more time on the current settings alone", correct: false, tag: null, rationale: "The described pattern (no improvement despite maximal FiO2) is the classic signature of true shunt, not a diffusion limitation, which would typically show at least some improvement with increased FiO2." },
+      { label: "C", text: "Normal expected ARDS physiology requiring no further intervention", correct: false, tag: null, rationale: "This pattern of failure to improve at maximal settings is a significant, actionable finding requiring further intervention (like recruitment strategies), not something to accept as an unremarkable expected course." },
+      { label: "D", text: "An indication to further increase FiO2 beyond 100%, which isn't physically possible but reflects the correct direction of the fix", correct: false, tag: null, rationale: "FiO2 is already maximized at 100% — the shunt physiology described specifically means further oxygen concentration increases (which aren't even possible beyond 100%) won't help; the solution lies in addressing the shunt itself through recruitment strategies." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "recall",
+    patient: "Neonatal · General",
+    stem: null,
+    question: "High-frequency oscillatory ventilation (HFOV) achieves gas exchange primarily through mechanisms that differ from conventional ventilation, including:",
+    options: [
+      { label: "A", text: "Very small tidal volumes (often less than anatomic dead space) delivered at very high rates, using mechanisms like augmented diffusion and pendelluft rather than simple bulk gas movement", correct: true, tag: null, rationale: "HFOV uses tiny tidal volumes delivered extremely rapidly, relying on complex, non-conventional gas transport mechanisms (augmented diffusion, pendelluft, Taylor dispersion) rather than the simple bulk convective gas movement seen in conventional ventilation with larger tidal volumes." },
+      { label: "B", text: "The exact same gas exchange mechanisms as conventional ventilation, just at a different rate", correct: false, tag: null, rationale: "HFOV's gas exchange mechanisms are fundamentally different from conventional ventilation's bulk convective flow, given tidal volumes often smaller than anatomic dead space — this isn't simply the same mechanism at a different speed." },
+      { label: "C", text: "Large tidal volumes delivered slowly", correct: false, tag: null, rationale: "This describes conventional ventilation, essentially the opposite of HFOV's approach, which uses very small volumes at very high rates." },
+      { label: "D", text: "A mechanism unrelated to any pressure oscillation", correct: false, tag: null, rationale: "HFOV is fundamentally based on oscillating pressure around a mean airway pressure — this IS the core mechanism, not something unrelated to pressure oscillation." },
+    ],
+  },
+  {
+    domain: "III",
+    subdomain: "III.C — Support Oxygenation and Ventilation",
+    level: "application",
+    patient: "Adult · General",
+    stem: "A patient on a ventilator with a set PEEP of 8 cmH2O has an end-expiratory hold performed, revealing a total PEEP of 14 cmH2O.",
+    question: "This finding indicates:",
+    options: [
+      { label: "A", text: "The presence of auto-PEEP (approximately 6 cmH2O beyond the set level), suggesting incomplete exhalation and air trapping", correct: true, tag: null, rationale: "The difference between total PEEP (measured via end-expiratory hold, revealing all pressure present including trapped gas) and set PEEP represents auto-PEEP — here, 14 minus the set 8 equals 6 cmH2O of auto-PEEP, indicating the patient isn't fully exhaling before the next breath, warranting evaluation and likely intervention (e.g., adjusting expiratory time)." },
+      { label: "B", text: "A ventilator malfunction requiring immediate replacement", correct: false, tag: null, rationale: "This is a recognized, measurable physiological finding (auto-PEEP) rather than necessarily indicating equipment malfunction — the appropriate response is addressing the ventilation settings contributing to air trapping, not assuming device failure." },
+      { label: "C", text: "Normal, expected ventilator function requiring no further assessment", correct: false, tag: null, rationale: "A total PEEP significantly higher than the set PEEP indicates a real, clinically relevant finding (auto-PEEP) that warrants assessment and likely intervention, not dismissal as normal." },
+      { label: "D", text: "An error in the end-expiratory hold technique with no clinical meaning", correct: false, tag: null, rationale: "When performed correctly, this technique reliably reveals meaningful auto-PEEP information — this finding shouldn't be dismissed as a technique error without further consideration." },
+    ],
+  },
 ];
 
 // ---- CSE branching scenario library ----
@@ -2597,6 +4006,29 @@ export default function RTBoardPrep() {
   const [answered, setAnswered] = useState({});
   const [chatOpen, setChatOpen] = useState(false);
 
+  // ---- Auth state ----
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [subscribed, setSubscribed] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        try {
+          const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+          setSubscribed(snap.exists() ? !!snap.data().subscribed : false);
+        } catch (e) {
+          setSubscribed(false);
+        }
+      } else {
+        setSubscribed(false);
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   const q = SAMPLE_QUESTIONS[qIndex];
   const allAnswered = Object.keys(answered).length === SAMPLE_QUESTIONS.length;
 
@@ -2614,10 +4046,13 @@ export default function RTBoardPrep() {
   function nextQuestion() {
     setSelected(null);
     setRevealed(false);
-    if (qIndex + 1 >= SAMPLE_QUESTIONS.length) {
+    const nextIndex = qIndex + 1;
+    if (!subscribed && nextIndex >= FREE_QUESTION_LIMIT) {
+      setScreen("paywall");
+    } else if (nextIndex >= SAMPLE_QUESTIONS.length) {
       setScreen("results");
     } else {
-      setQIndex((i) => i + 1);
+      setQIndex(nextIndex);
     }
   }
 
@@ -2627,6 +4062,26 @@ export default function RTBoardPrep() {
     setSelected(null);
     setRevealed(false);
     setScreen("practice");
+  }
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#F7F5F0", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'JetBrains Mono', monospace", color: "#8A8578", fontSize: 13 }}>
+        Loading…
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  // If the person arrived via the landing page's "Purchase Now" button,
+  // skip straight to Stripe checkout instead of showing the practice screen.
+  const cameFromPurchaseNow =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("upgrade") === "1";
+  if (cameFromPurchaseNow && !subscribed) {
+    return <AutoCheckoutRedirect />;
   }
 
   return (
@@ -2647,10 +4102,14 @@ export default function RTBoardPrep() {
           <Activity size={22} color="#E85D3D" strokeWidth={2.5} />
           <span className="mono" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>CRT/RRT Board Prep</span>
         </div>
-        <nav style={{ display: "flex", gap: 20 }}>
+        <nav style={{ display: "flex", gap: 20, alignItems: "center" }}>
           <button onClick={() => setScreen("home")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "home" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>OVERVIEW</button>
           <button onClick={() => setScreen("practice")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "practice" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>TMC PRACTICE</button>
           <button onClick={() => setScreen("cse")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "cse" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>CSE SIMULATION</button>
+          <span className="mono" style={{ fontSize: 11, color: "#8A8578", marginLeft: 8 }}>{subscribed ? "PLUS" : "FREE"}</span>
+          <button onClick={() => signOut(auth)} title="Log out" style={{ background: "none", border: "none", display: "flex", alignItems: "center", color: "#8A8578" }}>
+            <LogOut size={15} />
+          </button>
         </nav>
       </header>
 
@@ -2667,11 +4126,28 @@ export default function RTBoardPrep() {
         />
       )}
       {screen === "results" && <Results answered={answered} domainProgress={domainProgress} onRestart={restart} />}
+      {screen === "paywall" && <Paywall answeredCount={qIndex + 1} />}
       {screen === "cse" && <CSESimulation />}
 
       {/* Support chatbot */}
       <SupportChat open={chatOpen} setOpen={setChatOpen} />
     </div>
+  );
+}
+
+function Paywall({ answeredCount }) {
+  return (
+    <main style={{ maxWidth: 560, margin: "0 auto", padding: "72px 24px" }}>
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 14 }}>FREE TRIAL COMPLETE</p>
+      <h1 className="serif" style={{ fontSize: 30, fontWeight: 600, marginBottom: 16 }}>
+        You've used your {answeredCount} free practice questions.
+      </h1>
+      <p style={{ fontSize: 15, color: "#4A4536", lineHeight: 1.65, marginBottom: 32 }}>
+        Upgrade to CRT/RRT Board Prep Plus for unlimited AI-generated practice questions,
+        full CSE simulations, adaptive weak-area targeting, and both the 2026 and 2027 exam tracks.
+      </p>
+      <UpgradeButton />
+    </main>
   );
 }
 
@@ -2987,6 +4463,56 @@ function SupportChat({ open, setOpen }) {
 }
 
 // ---- Upgrade button: triggers real Stripe Checkout via Netlify Function ----
+// ---- Auto-redirects straight to Stripe checkout, used for the landing
+// page's "Purchase Now" button so returning/new users skip the practice
+// screen entirely and go directly to payment. ----
+function AutoCheckoutRedirect() {
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function go() {
+      try {
+        const currentUser = auth.currentUser;
+        const res = await fetch("/.netlify/functions/create-checkout-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid: currentUser ? currentUser.uid : null,
+            email: currentUser ? currentUser.email : null,
+          }),
+        });
+        const data = await res.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          setError(data.error || "Something went wrong starting checkout.");
+        }
+      } catch (e) {
+        setError("Could not reach checkout. Please try again.");
+      }
+    }
+    go();
+  }, []);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F7F5F0", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12, fontFamily: "'JetBrains Mono', monospace", color: "#8A8578", fontSize: 13, padding: 24, textAlign: "center" }}>
+      {!error ? (
+        <p>Redirecting you to secure checkout…</p>
+      ) : (
+        <>
+          <p style={{ color: "#E85D3D" }}>{error}</p>
+          <button
+            onClick={() => (window.location.href = "/")}
+            style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          >
+            Back to CRT/RRT Board Prep
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function UpgradeButton() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -2995,8 +4521,14 @@ function UpgradeButton() {
     setLoading(true);
     setError(null);
     try {
+      const currentUser = auth.currentUser;
       const res = await fetch("/.netlify/functions/create-checkout-session", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: currentUser ? currentUser.uid : null,
+          email: currentUser ? currentUser.email : null,
+        }),
       });
       const data = await res.json();
       if (data.url) {
@@ -3035,4 +4567,121 @@ function UpgradeButton() {
       )}
     </div>
   );
+}
+
+// ---- Auth screen: sign up / log in with email + password ----
+function AuthScreen() {
+  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        // Create the user's Firestore profile on first sign-up
+        await setDoc(doc(db, "users", cred.user.uid), {
+          email: cred.user.email,
+          createdAt: serverTimestamp(),
+          subscribed: false,
+        });
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+      // onAuthStateChanged in the parent component picks up the new session automatically
+    } catch (err) {
+      setError(friendlyAuthError(err.code));
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#F7F5F0", fontFamily: "'Iowan Old Style', 'Palatino Linotype', Georgia, serif", color: "#1B2A4A", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+        * { box-sizing: border-box; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .serif { font-family: 'Lora', Georgia, serif; }
+      `}</style>
+      <div style={{ maxWidth: 380, width: "100%" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32, justifyContent: "center" }}>
+          <Activity size={22} color="#E85D3D" strokeWidth={2.5} />
+          <span className="mono" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>CRT/RRT Board Prep</span>
+        </div>
+
+        <h1 className="serif" style={{ fontSize: 24, fontWeight: 600, textAlign: "center", marginBottom: 24 }}>
+          {mode === "login" ? "Log in to practice" : "Create your free account"}
+        </h1>
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
+            <Mail size={15} color="#8A8578" />
+            <input
+              type="email"
+              required
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
+            <KeyRound size={15} color="#8A8578" />
+            <input
+              type="password"
+              required
+              minLength={6}
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
+            />
+          </div>
+
+          {error && <p style={{ color: "#E85D3D", fontSize: 13, margin: 0 }}>{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, marginTop: 4 }}
+          >
+            {loading ? "Please wait…" : mode === "login" ? "Log in" : "Sign up free"}
+          </button>
+        </form>
+
+        <p style={{ textAlign: "center", fontSize: 13, color: "#8A8578", marginTop: 20 }}>
+          {mode === "login" ? "New here?" : "Already have an account?"}{" "}
+          <button
+            onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
+            style={{ background: "none", border: "none", color: "#E85D3D", fontWeight: 600, cursor: "pointer", fontSize: 13, textDecoration: "underline", padding: 0 }}
+          >
+            {mode === "login" ? "Create a free account" : "Log in instead"}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function friendlyAuthError(code) {
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "That email is already registered — try logging in instead.";
+    case "auth/invalid-email":
+      return "That doesn't look like a valid email address.";
+    case "auth/weak-password":
+      return "Password should be at least 6 characters.";
+    case "auth/wrong-password":
+    case "auth/invalid-credential":
+      return "Incorrect email or password.";
+    case "auth/user-not-found":
+      return "No account found with that email.";
+    default:
+      return "Something went wrong. Please try again.";
+  }
 }

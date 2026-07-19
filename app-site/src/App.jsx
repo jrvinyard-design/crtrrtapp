@@ -4072,15 +4072,14 @@ export default function RTBoardPrep() {
     );
   }
 
-  if (!user) {
-    return <AuthScreen />;
-  }
-
   // If the person arrived via the landing page's "Purchase Now" button,
-  // skip straight to Stripe checkout instead of showing the practice screen.
+  // they need an account before we can send them to checkout.
   const cameFromPurchaseNow =
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("upgrade") === "1";
-  if (cameFromPurchaseNow && !subscribed) {
+  if (cameFromPurchaseNow && !user) {
+    return <AuthScreen />;
+  }
+  if (cameFromPurchaseNow && user && !subscribed) {
     return <AutoCheckoutRedirect />;
   }
 
@@ -4106,10 +4105,16 @@ export default function RTBoardPrep() {
           <button onClick={() => setScreen("home")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "home" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>OVERVIEW</button>
           <button onClick={() => setScreen("practice")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "practice" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>TMC PRACTICE</button>
           <button onClick={() => setScreen("cse")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "cse" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>CSE SIMULATION</button>
-          <span className="mono" style={{ fontSize: 11, color: "#8A8578", marginLeft: 8 }}>{subscribed ? "PLUS" : "FREE"}</span>
-          <button onClick={() => signOut(auth)} title="Log out" style={{ background: "none", border: "none", display: "flex", alignItems: "center", color: "#8A8578" }}>
-            <LogOut size={15} />
-          </button>
+          {user ? (
+            <>
+              <span className="mono" style={{ fontSize: 11, color: "#8A8578", marginLeft: 8 }}>{subscribed ? "PLUS" : "FREE"}</span>
+              <button onClick={() => signOut(auth)} title="Log out" style={{ background: "none", border: "none", display: "flex", alignItems: "center", color: "#8A8578" }}>
+                <LogOut size={15} />
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setScreen("login")} className="mono" style={{ background: "none", border: "1px solid #DCD7C9", borderRadius: 3, padding: "5px 12px", fontSize: 11, letterSpacing: "0.04em", color: "#1B2A4A", fontWeight: 600 }}>LOG IN</button>
+          )}
         </nav>
       </header>
 
@@ -4126,7 +4131,8 @@ export default function RTBoardPrep() {
         />
       )}
       {screen === "results" && <Results answered={answered} domainProgress={domainProgress} onRestart={restart} />}
-      {screen === "paywall" && <Paywall answeredCount={qIndex + 1} />}
+      {screen === "paywall" && (!user ? <AuthScreen freeTrialMessage /> : <Paywall answeredCount={qIndex + 1} />)}
+      {screen === "login" && <AuthScreen />}
       {screen === "cse" && <CSESimulation />}
 
       {/* Support chatbot */}
@@ -4570,8 +4576,8 @@ function UpgradeButton() {
 }
 
 // ---- Auth screen: sign up / log in with email + password ----
-function AuthScreen() {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+function AuthScreen({ freeTrialMessage }) {
+  const [mode, setMode] = useState(freeTrialMessage ? "signup" : "login"); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
@@ -4614,9 +4620,14 @@ function AuthScreen() {
           <span className="mono" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" }}>CRT/RRT Board Prep</span>
         </div>
 
-        <h1 className="serif" style={{ fontSize: 24, fontWeight: 600, textAlign: "center", marginBottom: 24 }}>
+        <h1 className="serif" style={{ fontSize: 24, fontWeight: 600, textAlign: "center", marginBottom: freeTrialMessage ? 8 : 24 }}>
           {mode === "login" ? "Log in to practice" : "Create your free account"}
         </h1>
+        {freeTrialMessage && (
+          <p style={{ fontSize: 14, color: "#8A8578", textAlign: "center", marginBottom: 24, lineHeight: 1.5 }}>
+            You've used your 15 free practice questions. Create a free account to save your progress and keep going.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>

@@ -5,6 +5,7 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut,
 } from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
@@ -4064,18 +4065,19 @@ export default function RTBoardPrep() {
     setScreen("practice");
   }
 
-  if (authLoading) {
+  // If the person arrived via the landing page's "Purchase Now" button,
+  // they need an account before we can send them to checkout — that specific
+  // path is the only one that needs to wait for auth to resolve first.
+  const cameFromPurchaseNow =
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("upgrade") === "1";
+
+  if (cameFromPurchaseNow && authLoading) {
     return (
       <div style={{ minHeight: "100vh", background: "#F7F5F0", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'JetBrains Mono', monospace", color: "#8A8578", fontSize: 13 }}>
         Loading…
       </div>
     );
   }
-
-  // If the person arrived via the landing page's "Purchase Now" button,
-  // they need an account before we can send them to checkout.
-  const cameFromPurchaseNow =
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("upgrade") === "1";
   if (cameFromPurchaseNow && !user) {
     return <AuthScreen />;
   }
@@ -4107,7 +4109,7 @@ export default function RTBoardPrep() {
           <button onClick={() => setScreen("cse")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "cse" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>CSE SIMULATION</button>
           {user ? (
             <>
-              <span className="mono" style={{ fontSize: 11, color: "#8A8578", marginLeft: 8 }}>{subscribed ? "PLUS" : "FREE"}</span>
+              <button onClick={() => setScreen("account")} className="mono" style={{ background: "none", border: "none", fontSize: 11, color: "#8A8578", marginLeft: 8, cursor: "pointer", textDecoration: "underline" }}>{subscribed ? "PLUS" : "FREE"}</button>
               <button onClick={() => signOut(auth)} title="Log out" style={{ background: "none", border: "none", display: "flex", alignItems: "center", color: "#8A8578" }}>
                 <LogOut size={15} />
               </button>
@@ -4133,6 +4135,7 @@ export default function RTBoardPrep() {
       {screen === "results" && <Results answered={answered} domainProgress={domainProgress} onRestart={restart} />}
       {screen === "paywall" && (!user ? <AuthScreen freeTrialMessage /> : <Paywall answeredCount={qIndex + 1} />)}
       {screen === "login" && <AuthScreen />}
+      {screen === "account" && <AccountScreen user={user} subscribed={subscribed} onBack={() => setScreen("home")} />}
       {screen === "cse" && <CSESimulation />}
 
       {/* Support chatbot */}
@@ -4524,6 +4527,12 @@ function UpgradeButton() {
   const [error, setError] = useState(null);
 
   async function startCheckout() {
+    // Never let checkout happen without a linked account — redirect through
+    // the same sign-up flow the landing page's "Purchase Now" button uses.
+    if (!auth.currentUser) {
+      window.location.href = "/?upgrade=1";
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -4577,11 +4586,12 @@ function UpgradeButton() {
 
 // ---- Auth screen: sign up / log in with email + password ----
 function AuthScreen({ freeTrialMessage }) {
-  const [mode, setMode] = useState(freeTrialMessage ? "signup" : "login"); // "login" | "signup"
+  const [mode, setMode] = useState(freeTrialMessage ? "signup" : "login"); // "login" | "signup" | "reset"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -4596,6 +4606,9 @@ function AuthScreen({ freeTrialMessage }) {
           createdAt: serverTimestamp(),
           subscribed: false,
         });
+      } else if (mode === "reset") {
+        await sendPasswordResetEmail(auth, email);
+        setResetSent(true);
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -4621,59 +4634,98 @@ function AuthScreen({ freeTrialMessage }) {
         </div>
 
         <h1 className="serif" style={{ fontSize: 24, fontWeight: 600, textAlign: "center", marginBottom: freeTrialMessage ? 8 : 24 }}>
-          {mode === "login" ? "Log in to practice" : "Create your free account"}
+          {mode === "login" ? "Log in to practice" : mode === "reset" ? "Reset your password" : "Create your free account"}
         </h1>
-        {freeTrialMessage && (
+        {freeTrialMessage && mode !== "reset" && (
           <p style={{ fontSize: 14, color: "#8A8578", textAlign: "center", marginBottom: 24, lineHeight: 1.5 }}>
             You've used your 15 free practice questions. Create a free account to save your progress and keep going.
           </p>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
-            <Mail size={15} color="#8A8578" />
-            <input
-              type="email"
-              required
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
-            />
+        {mode === "reset" && resetSent ? (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ fontSize: 14, color: "#4A4536", lineHeight: 1.6, marginBottom: 24 }}>
+              Check <strong>{email}</strong> for a link to reset your password.
+            </p>
+            <button
+              onClick={() => { setMode("login"); setResetSent(false); setError(null); }}
+              style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 24px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+            >
+              Back to log in
+            </button>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
-            <KeyRound size={15} color="#8A8578" />
-            <input
-              type="password"
-              required
-              minLength={6}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
-            />
-          </div>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
+              <Mail size={15} color="#8A8578" />
+              <input
+                type="email"
+                required
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
+              />
+            </div>
+            {mode !== "reset" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", background: "#FFFFFF" }}>
+                <KeyRound size={15} color="#8A8578" />
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{ border: "none", outline: "none", flex: 1, fontSize: 14, fontFamily: "inherit" }}
+                />
+              </div>
+            )}
 
-          {error && <p style={{ color: "#E85D3D", fontSize: 13, margin: 0 }}>{error}</p>}
+            {mode === "login" && (
+              <button
+                type="button"
+                onClick={() => { setMode("reset"); setError(null); }}
+                style={{ background: "none", border: "none", color: "#8A8578", fontSize: 12, textAlign: "right", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+              >
+                Forgot password?
+              </button>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, marginTop: 4 }}
-          >
-            {loading ? "Please wait…" : mode === "login" ? "Log in" : "Sign up free"}
-          </button>
-        </form>
+            {error && <p style={{ color: "#E85D3D", fontSize: 13, margin: 0 }}>{error}</p>}
 
-        <p style={{ textAlign: "center", fontSize: 13, color: "#8A8578", marginTop: 20 }}>
-          {mode === "login" ? "New here?" : "Already have an account?"}{" "}
-          <button
-            onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
-            style={{ background: "none", border: "none", color: "#E85D3D", fontWeight: 600, cursor: "pointer", fontSize: 13, textDecoration: "underline", padding: 0 }}
-          >
-            {mode === "login" ? "Create a free account" : "Log in instead"}
-          </button>
-        </p>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1, marginTop: 4 }}
+            >
+              {loading ? "Please wait…" : mode === "login" ? "Log in" : mode === "reset" ? "Send reset link" : "Sign up free"}
+            </button>
+          </form>
+        )}
+
+        {!(mode === "reset" && resetSent) && (
+          <p style={{ textAlign: "center", fontSize: 13, color: "#8A8578", marginTop: 20 }}>
+            {mode === "reset" ? (
+              <button
+                onClick={() => { setMode("login"); setError(null); }}
+                style={{ background: "none", border: "none", color: "#E85D3D", fontWeight: 600, cursor: "pointer", fontSize: 13, textDecoration: "underline", padding: 0 }}
+              >
+                Back to log in
+              </button>
+            ) : (
+              <>
+                {mode === "login" ? "New here?" : "Already have an account?"}{" "}
+                <button
+                  onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(null); }}
+                  style={{ background: "none", border: "none", color: "#E85D3D", fontWeight: 600, cursor: "pointer", fontSize: 13, textDecoration: "underline", padding: 0 }}
+                >
+                  {mode === "login" ? "Create a free account" : "Log in instead"}
+                </button>
+              </>
+            )}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -4695,4 +4747,97 @@ function friendlyAuthError(code) {
     default:
       return "Something went wrong. Please try again.";
   }
+}
+
+// ---- Account screen: shows plan status and lets a subscriber cancel ----
+function AccountScreen({ user, subscribed, onBack }) {
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null); // { cancelled, accessUntil } | { error }
+
+  async function confirmCancel() {
+    setLoading(true);
+    try {
+      const res = await fetch("/.netlify/functions/cancel-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uid: user ? user.uid : null }),
+      });
+      const data = await res.json();
+      if (data.cancelled) {
+        setResult({ cancelled: true, accessUntil: data.accessUntil });
+      } else {
+        setResult({ error: data.error || "Something went wrong. Please try again." });
+      }
+    } catch (e) {
+      setResult({ error: "Could not reach the server. Please try again." });
+    } finally {
+      setLoading(false);
+      setConfirming(false);
+    }
+  }
+
+  return (
+    <main style={{ maxWidth: 480, margin: "0 auto", padding: "56px 24px" }}>
+      <button onClick={onBack} className="mono" style={{ background: "none", border: "none", fontSize: 12, color: "#8A8578", marginBottom: 24, padding: 0, cursor: "pointer" }}>← Back</button>
+
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#8A8578", fontWeight: 700, marginBottom: 10 }}>ACCOUNT</p>
+      <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, marginBottom: 20 }}>{user ? user.email : ""}</h1>
+
+      <div style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 6, padding: "20px 22px", marginBottom: 24 }}>
+        <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 4 }}>CURRENT PLAN</p>
+        <p style={{ fontSize: 18, fontWeight: 700 }}>{subscribed ? "CRT/RRT Board Prep Plus" : "Free"}</p>
+      </div>
+
+      {result && result.cancelled && (
+        <div style={{ background: "#2D8B6F14", border: "1px solid #2D8B6F", borderRadius: 6, padding: "16px 18px" }}>
+          <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+            Your subscription is set to cancel. You'll keep full Plus access until{" "}
+            <strong>{new Date(result.accessUntil).toLocaleDateString()}</strong>, after which your account
+            reverts to the free plan.
+          </p>
+        </div>
+      )}
+
+      {result && result.error && (
+        <p style={{ color: "#E85D3D", fontSize: 13, marginBottom: 16 }}>{result.error}</p>
+      )}
+
+      {subscribed && !(result && result.cancelled) && (
+        <>
+          {!confirming ? (
+            <button
+              onClick={() => setConfirming(true)}
+              style={{ background: "none", border: "1px solid #E85D3D", color: "#E85D3D", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              Cancel subscription
+            </button>
+          ) : (
+            <div style={{ background: "#E85D3D14", border: "1px solid #E85D3D", borderRadius: 6, padding: "16px 18px" }}>
+              <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 14 }}>
+                Are you sure? You'll keep Plus access until the end of your current billing period,
+                then your account moves to the free plan.
+              </p>
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={confirmCancel}
+                  disabled={loading}
+                  style={{ background: "#E85D3D", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}
+                >
+                  {loading ? "Cancelling…" : "Yes, cancel"}
+                </button>
+                <button
+                  onClick={() => setConfirming(false)}
+                  disabled={loading}
+                  style={{ background: "none", border: "1px solid #DCD7C9", color: "#1B2A4A", borderRadius: 3, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                >
+                  Never mind
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </main>
+  );
 }

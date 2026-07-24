@@ -4030,6 +4030,15 @@ export default function RTBoardPrep() {
     return () => unsubscribe();
   }, []);
 
+  // If someone successfully logs in while sitting on the standalone "login"
+  // screen (reached via the header's LOG IN button), automatically take
+  // them back into the app instead of leaving them stuck on the login form.
+  useEffect(() => {
+    if (user && screen === "login") {
+      setScreen("home");
+    }
+  }, [user, screen]);
+
   const q = SAMPLE_QUESTIONS[qIndex];
   const allAnswered = Object.keys(answered).length === SAMPLE_QUESTIONS.length;
 

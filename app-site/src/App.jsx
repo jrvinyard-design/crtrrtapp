@@ -4162,7 +4162,7 @@ function Paywall({ answeredCount }) {
       </h1>
       <p style={{ fontSize: 15, color: "#4A4536", lineHeight: 1.65, marginBottom: 32 }}>
         Upgrade to CRT/RRT Board Prep Plus for unlimited AI-generated practice questions,
-        full CSE simulations, adaptive weak-area targeting, and both the 2026 and 2027 exam tracks.
+        full CSE simulations, and adaptive weak-area targeting. 2027 RT Exam prep coming soon.
       </p>
       <UpgradeButton />
     </main>
@@ -4172,7 +4172,7 @@ function Paywall({ answeredCount }) {
 function Home({ domainProgress, goPractice }) {
   return (
     <main style={{ maxWidth: 860, margin: "0 auto", padding: "56px 24px 80px" }}>
-      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 10 }}>TMC · CSE · 2027 RT EXAM READY</p>
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 10 }}>TMC · CSE · 2027 RT EXAM PREP COMING SOON</p>
       <h1 className="serif" style={{ fontSize: 40, fontWeight: 600, lineHeight: 1.15, margin: "0 0 16px", maxWidth: 620 }}>
         Practice questions that never repeat, weighted exactly like the real exam.
       </h1>
@@ -4432,7 +4432,7 @@ const FAQ = [
   { q: "How is this different from a static question bank?", a: "Every question is generated fresh against the real NBRC blueprint weighting, so you never run out and the mix always matches the actual exam's domain and difficulty balance." },
   { q: "Is this affiliated with the NBRC?", a: "No. CRT/RRT Board Prep is an independent study tool. Questions are original practice items modeled on the publicly available NBRC content outline, not real or retired exam questions." },
   { q: "Can I cancel my subscription anytime?", a: "Yes — cancel anytime from your account settings and you'll keep access through the end of your current billing period." },
-  { q: "Does this cover the new 2027 RT Exam?", a: "Yes — we maintain both a legacy TMC/CSE track and a 2027 RT Exam track, updated as the NBRC finalizes the new blueprint." },
+  { q: "Does this cover the new 2027 RT Exam?", a: "Not yet — we're actively building a dedicated 2027 RT Exam track. Right now CRT/RRT Board Prep covers the current TMC and CSE in full depth, which remains the exam most students are sitting for through 2026." },
 ];
 
 function SupportChat({ open, setOpen }) {

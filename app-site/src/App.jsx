@@ -4907,15 +4907,24 @@ const ABG_LESSON_SLIDES = [
   },
 ];
 
+// ---- Calculator registry: add new calculators here as they're built ----
+const CALCULATORS = [
+  {
+    id: "abg",
+    title: "ABG Interpretation Calculator",
+    description: "Enter pH, PaCO2, and HCO3 to classify the acid-base disturbance and compensation status.",
+  },
+];
+
 function ResourcesHub() {
   const [activeLesson, setActiveLesson] = useState(null);
-  const [showCalculator, setShowCalculator] = useState(false);
+  const [activeCalculator, setActiveCalculator] = useState(null);
 
   if (activeLesson === "abg") {
     return <LessonViewer slides={ABG_LESSON_SLIDES} title="ABG Interpretation" onExit={() => setActiveLesson(null)} />;
   }
-  if (showCalculator) {
-    return <ABGCalculator onExit={() => setShowCalculator(false)} />;
+  if (activeCalculator === "abg") {
+    return <ABGCalculator onExit={() => setActiveCalculator(null)} />;
   }
 
   return (
@@ -4923,34 +4932,41 @@ function ResourcesHub() {
       <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 10 }}>RESOURCES</p>
       <h1 className="serif" style={{ fontSize: 28, fontWeight: 600, marginBottom: 10 }}>Study guides and reference material</h1>
       <p style={{ fontSize: 15, color: "#4A4536", marginBottom: 36 }}>
-        Curated external guides plus interactive lessons for the concepts that show up constantly on the exam.
-        More topics added regularly.
+        Curated external guides, interactive lessons, and calculators for the concepts that show up
+        constantly on the exam. More added regularly.
       </p>
 
+      {/* ---- Calculators subsection ---- */}
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#2D8B6F", fontWeight: 700, marginBottom: 14 }}>CALCULATORS</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 40 }}>
+        {CALCULATORS.map((calc) => (
+          <button
+            key={calc.id}
+            onClick={() => setActiveCalculator(calc.id)}
+            style={{ textAlign: "left", background: "#2D8B6F0D", border: "1px solid #2D8B6F", borderRadius: 8, padding: "18px 20px", cursor: "pointer" }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 700, color: "#1B2A4A", display: "block", marginBottom: 4 }}>{calc.title}</span>
+            <span style={{ fontSize: 13, color: "#4A4536" }}>{calc.description}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ---- Study Topics subsection ---- */}
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#8A8578", fontWeight: 700, marginBottom: 14 }}>STUDY TOPICS</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {RESOURCE_TOPICS.map((topic) => (
           <div key={topic.id} style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 8, padding: "24px 26px" }}>
             <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{topic.title}</h2>
             <p style={{ fontSize: 14, color: "#4A4536", marginBottom: 16 }}>{topic.description}</p>
 
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              {topic.hasLesson && (
-                <button
-                  onClick={() => setActiveLesson(topic.id)}
-                  style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-                >
-                  Start Interactive Lesson
-                </button>
-              )}
-              {topic.id === "abg" && (
-                <button
-                  onClick={() => setShowCalculator(true)}
-                  style={{ background: "#2D8B6F", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
-                >
-                  Try the ABG Calculator
-                </button>
-              )}
-            </div>
+            {topic.hasLesson && (
+              <button
+                onClick={() => setActiveLesson(topic.id)}
+                style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", marginBottom: 16 }}
+              >
+                Start Interactive Lesson
+              </button>
+            )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {topic.links.map((link, i) => (

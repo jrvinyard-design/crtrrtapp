@@ -4116,6 +4116,7 @@ export default function RTBoardPrep() {
           <button onClick={() => setScreen("home")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "home" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>OVERVIEW</button>
           <button onClick={() => setScreen("practice")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "practice" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>TMC PRACTICE</button>
           <button onClick={() => setScreen("cse")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "cse" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>CSE SIMULATION</button>
+          <button onClick={() => setScreen("resources")} className="mono" style={{ background: "none", border: "none", fontSize: 12, letterSpacing: "0.04em", color: screen === "resources" ? "#1B2A4A" : "#8A8578", fontWeight: 600 }}>RESOURCES</button>
           {user ? (
             <>
               <button onClick={() => setScreen("account")} className="mono" style={{ background: "none", border: "none", fontSize: 11, color: "#8A8578", marginLeft: 8, cursor: "pointer", textDecoration: "underline" }}>{subscribed ? "PLUS" : "FREE"}</button>
@@ -4146,6 +4147,7 @@ export default function RTBoardPrep() {
       {screen === "login" && <AuthScreen />}
       {screen === "account" && <AccountScreen user={user} subscribed={subscribed} onBack={() => setScreen("home")} />}
       {screen === "cse" && <CSESimulation />}
+      {screen === "resources" && <ResourcesHub />}
 
       {/* Support chatbot */}
       <SupportChat open={chatOpen} setOpen={setChatOpen} />
@@ -4847,6 +4849,328 @@ function AccountScreen({ user, subscribed, onBack }) {
           )}
         </>
       )}
+    </main>
+  );
+}
+
+// ---- Resources Hub: curated links + interactive learning lessons ----
+const RESOURCE_TOPICS = [
+  {
+    id: "abg",
+    title: "ABG Interpretation",
+    description: "The single most-tested clinical skill on the exam — read any blood gas with a repeatable method.",
+    hasLesson: true,
+    links: [
+      { title: "ABG Interpretation Made Easy: A Step-by-Step Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-interpretation/" },
+      { title: "Arterial Blood Gas (ABG) Tips for the Respiratory Board Exam", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-exam-tips/" },
+      { title: "ABG Oxygenation Interpretation: PaO2, SaO2, and Hypoxemia", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-oxygenation-interpretation/" },
+      { title: "Adjusting Ventilator Settings Based on ABG Results", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/adjusting-ventilator-settings-abg-results/" },
+    ],
+  },
+  {
+    id: "waveforms",
+    title: "Ventilator Waveforms",
+    description: "Reading pressure, flow, and volume waveforms to catch auto-PEEP, asynchrony, and resistance problems.",
+    hasLesson: false,
+    links: [
+      { title: "Ventilator Waveforms and Graphics: Interpretation Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/ventilator-waveforms/" },
+      { title: "5.1 Waveforms — Respiratory Therapy (open textbook)", source: "WTCS Open / Pressbooks", url: "https://wtcs.pressbooks.pub/respiratorysurvey/chapter/5-1-waveforms/" },
+    ],
+  },
+];
+
+const ABG_LESSON_SLIDES = [
+  {
+    title: "The 3-Step Method",
+    body: "Every ABG, no matter how complex, can be read with the same 3 steps in the same order. Build this into a habit now — it's the single highest-leverage study skill for this exam.",
+    points: ["1. Check the pH first — acidic or alkalotic?", "2. Decide respiratory vs. metabolic — which value explains the pH direction?", "3. Check for compensation — is the other value shifting to correct the pH?"],
+  },
+  {
+    title: "Step 1: The pH",
+    body: "Normal pH is 7.35–7.45. Anything below is acidic, anything above is alkalotic. This single number tells you the direction of the problem before you look at anything else.",
+    points: ["pH < 7.35 → Acidosis", "pH > 7.45 → Alkalosis", "Always start here — don't jump to PaCO2 or HCO3 first"],
+  },
+  {
+    title: "Step 2: Respiratory or Metabolic?",
+    body: "PaCO2 is the respiratory component. HCO3 is the metabolic component. Whichever one moves in the SAME direction as the pH abnormality is usually the primary problem.",
+    points: ["High PaCO2 + low pH → Respiratory acidosis", "Low PaCO2 + high pH → Respiratory alkalosis", "Low HCO3 + low pH → Metabolic acidosis", "High HCO3 + high pH → Metabolic alkalosis"],
+  },
+  {
+    title: "Step 3: Compensation",
+    body: "The body tries to correct pH imbalances using the OTHER system. If the kidneys or lungs are compensating, the non-primary value will also be moving — just not enough to fully normalize the pH.",
+    points: ["Uncompensated: pH abnormal, only the primary value is off", "Partially compensated: pH still abnormal, but BOTH values have shifted", "Fully compensated: pH is normal (or near-normal), but both values are still abnormal"],
+  },
+  {
+    title: "Try It: Worked Example",
+    body: "pH 7.31, PaCO2 55 mmHg, HCO3 27 mEq/L — a COPD patient with 2 days of worsening dyspnea.",
+    points: ["Step 1: pH 7.31 → acidic", "Step 2: PaCO2 is high (55) → respiratory acidosis is the primary problem", "Step 3: HCO3 is also elevated (27) → some compensation is present, but pH is still abnormal → partially compensated", "Conclusion: Acute-on-chronic respiratory acidosis — this patient's chronic compensation is being overwhelmed by an acute worsening"],
+  },
+];
+
+function ResourcesHub() {
+  const [activeLesson, setActiveLesson] = useState(null);
+  const [showCalculator, setShowCalculator] = useState(false);
+
+  if (activeLesson === "abg") {
+    return <LessonViewer slides={ABG_LESSON_SLIDES} title="ABG Interpretation" onExit={() => setActiveLesson(null)} />;
+  }
+  if (showCalculator) {
+    return <ABGCalculator onExit={() => setShowCalculator(false)} />;
+  }
+
+  return (
+    <main style={{ maxWidth: 780, margin: "0 auto", padding: "48px 24px 90px" }}>
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 10 }}>RESOURCES</p>
+      <h1 className="serif" style={{ fontSize: 28, fontWeight: 600, marginBottom: 10 }}>Study guides and reference material</h1>
+      <p style={{ fontSize: 15, color: "#4A4536", marginBottom: 36 }}>
+        Curated external guides plus interactive lessons for the concepts that show up constantly on the exam.
+        More topics added regularly.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {RESOURCE_TOPICS.map((topic) => (
+          <div key={topic.id} style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 8, padding: "24px 26px" }}>
+            <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{topic.title}</h2>
+            <p style={{ fontSize: 14, color: "#4A4536", marginBottom: 16 }}>{topic.description}</p>
+
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+              {topic.hasLesson && (
+                <button
+                  onClick={() => setActiveLesson(topic.id)}
+                  style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                >
+                  Start Interactive Lesson
+                </button>
+              )}
+              {topic.id === "abg" && (
+                <button
+                  onClick={() => setShowCalculator(true)}
+                  style={{ background: "#2D8B6F", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                >
+                  Try the ABG Calculator
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {topic.links.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "block", padding: "10px 14px", background: "#F7F5F0", borderRadius: 4, textDecoration: "none", color: "#1B2A4A" }}
+                >
+                  <span style={{ fontSize: 14, fontWeight: 600, display: "block" }}>{link.title}</span>
+                  <span className="mono" style={{ fontSize: 11, color: "#8A8578" }}>{link.source}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function LessonViewer({ slides, title, onExit }) {
+  const [index, setIndex] = useState(0);
+  const slide = slides[index];
+  const isLast = index === slides.length - 1;
+
+  return (
+    <main style={{ maxWidth: 640, margin: "0 auto", padding: "40px 24px 90px" }}>
+      <button onClick={onExit} className="mono" style={{ background: "none", border: "none", fontSize: 12, color: "#8A8578", marginBottom: 20, padding: 0, cursor: "pointer" }}>← Back to Resources</button>
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700 }}>{title}</p>
+        <p className="mono" style={{ fontSize: 12, color: "#8A8578" }}>{index + 1} / {slides.length}</p>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 4, background: "#DCD7C9", borderRadius: 2, marginBottom: 32, overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${((index + 1) / slides.length) * 100}%`, background: "#E85D3D", transition: "width 0.3s" }} />
+      </div>
+
+      <div style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 10, padding: "32px 30px", minHeight: 320 }}>
+        <h2 className="serif" style={{ fontSize: 24, fontWeight: 600, marginBottom: 16 }}>{slide.title}</h2>
+        <p style={{ fontSize: 16, lineHeight: 1.65, color: "#2A2620", marginBottom: 24 }}>{slide.body}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {slide.points.map((point, i) => (
+            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#F7F5F0", borderRadius: 6, padding: "12px 14px" }}>
+              <span style={{ fontSize: 15, lineHeight: 1.5 }}>{point}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
+        <button
+          onClick={() => setIndex((i) => Math.max(0, i - 1))}
+          disabled={index === 0}
+          style={{ background: "none", border: "1px solid #DCD7C9", color: index === 0 ? "#DCD7C9" : "#1B2A4A", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 600, cursor: index === 0 ? "default" : "pointer" }}
+        >
+          ← Previous
+        </button>
+        {!isLast ? (
+          <button
+            onClick={() => setIndex((i) => Math.min(slides.length - 1, i + 1))}
+            style={{ background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          >
+            Next →
+          </button>
+        ) : (
+          <button
+            onClick={onExit}
+            style={{ background: "#2D8B6F", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+          >
+            Finish Lesson ✓
+          </button>
+        )}
+      </div>
+    </main>
+  );
+}
+
+// ---- ABG Interpretation Calculator: educational tool, not a clinical decision aid ----
+function classifyABG(pH, paco2, hco3) {
+  const phLow = pH < 7.35;
+  const phHigh = pH > 7.45;
+  const co2Low = paco2 < 35;
+  const co2High = paco2 > 45;
+  const co2Normal = !co2Low && !co2High;
+  const hco3Low = hco3 < 22;
+  const hco3High = hco3 > 26;
+  const hco3Normal = !hco3Low && !hco3High;
+
+  let primary;
+  let compensation;
+
+  if (phLow) {
+    if (co2High && hco3Normal) primary = "Respiratory Acidosis";
+    else if (hco3Low && co2Normal) primary = "Metabolic Acidosis";
+    else if (co2High && hco3Low) primary = "Mixed Respiratory & Metabolic Acidosis";
+    else if (co2High && hco3High) primary = "Respiratory Acidosis with partial metabolic compensation";
+    else if (hco3Low && co2Low) primary = "Metabolic Acidosis with partial respiratory compensation";
+    else primary = "Acidosis — mixed picture, review clinical context";
+    compensation = (co2Normal || hco3Normal) ? "Uncompensated" : "Partially Compensated";
+  } else if (phHigh) {
+    if (co2Low && hco3Normal) primary = "Respiratory Alkalosis";
+    else if (hco3High && co2Normal) primary = "Metabolic Alkalosis";
+    else if (co2Low && hco3High) primary = "Mixed Respiratory & Metabolic Alkalosis";
+    else if (co2Low && hco3Low) primary = "Respiratory Alkalosis with partial metabolic compensation";
+    else if (hco3High && co2High) primary = "Metabolic Alkalosis with partial respiratory compensation";
+    else primary = "Alkalosis — mixed picture, review clinical context";
+    compensation = (co2Normal || hco3Normal) ? "Uncompensated" : "Partially Compensated";
+  } else {
+    if (co2Normal && hco3Normal) {
+      primary = "Normal Acid-Base Status";
+      compensation = "N/A";
+    } else if (co2High && hco3High) {
+      primary = "Fully Compensated Respiratory Acidosis (or chronic metabolic alkalosis — use clinical history to distinguish)";
+      compensation = "Fully Compensated";
+    } else if (co2Low && hco3Low) {
+      primary = "Fully Compensated Respiratory Alkalosis (or chronic metabolic acidosis — use clinical history to distinguish)";
+      compensation = "Fully Compensated";
+    } else {
+      primary = "Normal pH with an isolated abnormal value — review clinical context";
+      compensation = "N/A";
+    }
+  }
+
+  return { primary, compensation, phStatus: phLow ? "Acidic" : phHigh ? "Alkalotic" : "Normal" };
+}
+
+function ABGCalculator({ onExit }) {
+  const [ph, setPh] = useState("");
+  const [paco2, setPaco2] = useState("");
+  const [hco3, setHco3] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const phNum = parseFloat(ph);
+    const co2Num = parseFloat(paco2);
+    const hco3Num = parseFloat(hco3);
+    if (isNaN(phNum) || isNaN(co2Num) || isNaN(hco3Num)) {
+      setResult({ error: "Please enter valid numbers for all three values." });
+      return;
+    }
+    setResult(classifyABG(phNum, co2Num, hco3Num));
+  }
+
+  return (
+    <main style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px 90px" }}>
+      <button onClick={onExit} className="mono" style={{ background: "none", border: "none", fontSize: 12, color: "#8A8578", marginBottom: 20, padding: 0, cursor: "pointer" }}>← Back to Resources</button>
+
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#2D8B6F", fontWeight: 700, marginBottom: 10 }}>ABG CALCULATOR</p>
+      <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, marginBottom: 10 }}>Practice the 3-step method</h1>
+      <p style={{ fontSize: 14, color: "#4A4536", marginBottom: 28, lineHeight: 1.6 }}>
+        Enter a set of ABG values to see the classification. This is an educational study tool for
+        practicing the interpretation method — not a clinical decision aid for actual patient care.
+      </p>
+
+      <div style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 10, padding: "26px 24px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+          <div>
+            <label className="mono" style={{ fontSize: 11, color: "#8A8578", display: "block", marginBottom: 6 }}>pH (normal 7.35–7.45)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={ph}
+              onChange={(e) => setPh(e.target.value)}
+              placeholder="e.g. 7.31"
+              style={{ width: "100%", border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 11, color: "#8A8578", display: "block", marginBottom: 6 }}>PaCO2, mmHg (normal 35–45)</label>
+            <input
+              type="number"
+              value={paco2}
+              onChange={(e) => setPaco2(e.target.value)}
+              placeholder="e.g. 55"
+              style={{ width: "100%", border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}
+            />
+          </div>
+          <div>
+            <label className="mono" style={{ fontSize: 11, color: "#8A8578", display: "block", marginBottom: 6 }}>HCO3, mEq/L (normal 22–26)</label>
+            <input
+              type="number"
+              value={hco3}
+              onChange={(e) => setHco3(e.target.value)}
+              placeholder="e.g. 27"
+              style={{ width: "100%", border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={calculate}
+          style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+        >
+          Classify This ABG
+        </button>
+
+        {result && !result.error && (
+          <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+            <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>PH STATUS</p>
+            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>{result.phStatus}</p>
+            <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>CLASSIFICATION</p>
+            <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>{result.primary}</p>
+            <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>COMPENSATION</p>
+            <p style={{ fontSize: 15, fontWeight: 700 }}>{result.compensation}</p>
+          </div>
+        )}
+        {result && result.error && (
+          <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>
+        )}
+      </div>
+
+      <p style={{ fontSize: 12, color: "#8A8578", marginTop: 20, lineHeight: 1.6 }}>
+        This tool applies a simplified, standard interpretation framework for study purposes. Real
+        clinical ABG interpretation always requires full patient context — always correlate with
+        clinical presentation, not lab values alone.
+      </p>
     </main>
   );
 }

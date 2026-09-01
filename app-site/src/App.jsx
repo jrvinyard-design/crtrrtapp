@@ -4871,10 +4871,20 @@ const RESOURCE_TOPICS = [
     id: "waveforms",
     title: "Ventilator Waveforms",
     description: "Reading pressure, flow, and volume waveforms to catch auto-PEEP, asynchrony, and resistance problems.",
-    hasLesson: false,
+    hasLesson: true,
     links: [
       { title: "Ventilator Waveforms and Graphics: Interpretation Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/ventilator-waveforms/" },
       { title: "5.1 Waveforms — Respiratory Therapy (open textbook)", source: "WTCS Open / Pressbooks", url: "https://wtcs.pressbooks.pub/respiratorysurvey/chapter/5-1-waveforms/" },
+    ],
+  },
+  {
+    id: "oxygen",
+    title: "Oxygen Delivery Devices",
+    description: "FiO2 ranges, flow rates, and how to choose the right device for a patient's oxygenation need.",
+    hasLesson: false,
+    links: [
+      { title: "Oxygen Flow Rate and Fraction of Inspired Oxygen (FiO2)", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/oxygen-flow-rate-fio2/" },
+      { title: "Oxygen Administration: What Is the Best Choice?", source: "Respiratory Therapy (RT Magazine)", url: "https://respiratory-therapy.com/products-treatment/monitoring-treatment/therapy-devices/oxygen-administration-best-choice/" },
     ],
   },
 ];
@@ -4907,12 +4917,55 @@ const ABG_LESSON_SLIDES = [
   },
 ];
 
+const WAVEFORM_LESSON_SLIDES = [
+  {
+    title: "Three Basic Waveform Types",
+    body: "Ventilators display three time-based graphs continuously: pressure-time, flow-time, and volume-time. Each tells you something different about what's happening with each breath.",
+    points: ["Pressure-time: shows peak, plateau, and PEEP", "Flow-time: shows inspiratory/expiratory flow patterns", "Volume-time: shows delivered tidal volume over the breath"],
+  },
+  {
+    title: "Reading the Flow-Time Waveform",
+    body: "This is the waveform most useful for catching auto-PEEP. Watch whether expiratory flow actually returns to zero before the next breath starts.",
+    points: ["Normal: flow returns to baseline (zero) before the next breath", "Auto-PEEP sign: flow does NOT return to zero — the patient is still exhaling when the next breath fires", "This causes 'breath stacking' and trapped pressure the ventilator doesn't display as set PEEP"],
+  },
+  {
+    title: "Peak vs. Plateau Pressure on the Waveform",
+    body: "The pressure-time waveform shows both peak (highest point) and plateau (the brief pause during an inspiratory hold). The RELATIONSHIP between these two numbers tells you what's wrong.",
+    points: ["Peak UP, plateau unchanged → airway resistance problem (secretions, bronchospasm, kinked tube)", "Peak AND plateau UP together → compliance problem (worsening ARDS, pneumothorax, abdominal distension)", "This distinction is one of the highest-yield waveform concepts on the exam"],
+  },
+  {
+    title: "Recognizing Patient-Ventilator Asynchrony",
+    body: "Waveforms reveal when the patient and ventilator aren't working together — a pressure spike right at breath initiation combined with extra, unexpected triggered breaths is a classic asynchrony pattern.",
+    points: ["Often caused by insufficient flow relative to patient demand", "Or a trigger sensitivity that's poorly matched to patient effort", "Fixing it usually means adjusting flow, sensitivity, or inspiratory time — not sedating the patient as a first response"],
+  },
+  {
+    title: "Try It: Reading the Pattern",
+    body: "A ventilated patient shows: flow-time waveform failing to return to zero before the next breath, and pressure-time waveform shows both peak and plateau pressure trending upward together over an hour.",
+    points: ["Flow-time finding → auto-PEEP / breath stacking", "Pressure pattern → a compliance problem (not resistance, since it's peak AND plateau together)", "Combined picture: worsening lung compliance (e.g. progressing ARDS) with superimposed air trapping — both need addressing, not just one"],
+  },
+];
+
 // ---- Calculator registry: add new calculators here as they're built ----
 const CALCULATORS = [
   {
     id: "abg",
     title: "ABG Interpretation Calculator",
     description: "Enter pH, PaCO2, and HCO3 to classify the acid-base disturbance and compensation status.",
+  },
+  {
+    id: "driving-pressure",
+    title: "Driving Pressure Calculator",
+    description: "Enter plateau pressure and PEEP to calculate driving pressure for ARDS ventilator management.",
+  },
+  {
+    id: "pf-ratio",
+    title: "P/F Ratio & ARDS Severity Calculator",
+    description: "Enter PaO2 and FiO2 to calculate the P/F ratio and see Berlin Criteria ARDS severity staging.",
+  },
+  {
+    id: "nc-fio2",
+    title: "Nasal Cannula FiO2 Estimator",
+    description: "Enter oxygen flow rate (L/min) to estimate the approximate delivered FiO2 on a standard nasal cannula.",
   },
 ];
 
@@ -4923,8 +4976,20 @@ function ResourcesHub() {
   if (activeLesson === "abg") {
     return <LessonViewer slides={ABG_LESSON_SLIDES} title="ABG Interpretation" onExit={() => setActiveLesson(null)} />;
   }
+  if (activeLesson === "waveforms") {
+    return <LessonViewer slides={WAVEFORM_LESSON_SLIDES} title="Ventilator Waveforms" onExit={() => setActiveLesson(null)} />;
+  }
   if (activeCalculator === "abg") {
     return <ABGCalculator onExit={() => setActiveCalculator(null)} />;
+  }
+  if (activeCalculator === "driving-pressure") {
+    return <DrivingPressureCalculator onExit={() => setActiveCalculator(null)} />;
+  }
+  if (activeCalculator === "pf-ratio") {
+    return <PFRatioCalculator onExit={() => setActiveCalculator(null)} />;
+  }
+  if (activeCalculator === "nc-fio2") {
+    return <NCFiO2Calculator onExit={() => setActiveCalculator(null)} />;
   }
 
   return (
@@ -5188,5 +5253,178 @@ function ABGCalculator({ onExit }) {
         clinical presentation, not lab values alone.
       </p>
     </main>
+  );
+}
+
+// ---- Shared calculator input field styling helper ----
+function CalcInput({ label, value, onChange, placeholder }) {
+  return (
+    <div>
+      <label className="mono" style={{ fontSize: 11, color: "#8A8578", display: "block", marginBottom: 6 }}>{label}</label>
+      <input
+        type="number"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ width: "100%", border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}
+      />
+    </div>
+  );
+}
+
+function CalcShell({ title, subtitle, description, onExit, children, disclaimer }) {
+  return (
+    <main style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px 90px" }}>
+      <button onClick={onExit} className="mono" style={{ background: "none", border: "none", fontSize: 12, color: "#8A8578", marginBottom: 20, padding: 0, cursor: "pointer" }}>← Back to Resources</button>
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#2D8B6F", fontWeight: 700, marginBottom: 10 }}>{subtitle}</p>
+      <h1 className="serif" style={{ fontSize: 26, fontWeight: 600, marginBottom: 10 }}>{title}</h1>
+      <p style={{ fontSize: 14, color: "#4A4536", marginBottom: 28, lineHeight: 1.6 }}>{description}</p>
+      <div style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 10, padding: "26px 24px" }}>
+        {children}
+      </div>
+      {disclaimer && <p style={{ fontSize: 12, color: "#8A8578", marginTop: 20, lineHeight: 1.6 }}>{disclaimer}</p>}
+    </main>
+  );
+}
+
+// ---- Driving Pressure Calculator ----
+function DrivingPressureCalculator({ onExit }) {
+  const [pplat, setPplat] = useState("");
+  const [peep, setPeep] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const p = parseFloat(pplat);
+    const e = parseFloat(peep);
+    if (isNaN(p) || isNaN(e)) {
+      setResult({ error: "Please enter valid numbers for both values." });
+      return;
+    }
+    const dp = p - e;
+    let interpretation;
+    if (dp < 15) interpretation = "Within the generally favorable range (under ~15 cmH2O) associated with lung-protective ventilation.";
+    else interpretation = "Elevated — driving pressure above ~15 cmH2O has been associated with worse outcomes in ARDS research. Consider whether tidal volume or PEEP can be optimized.";
+    setResult({ dp, interpretation });
+  }
+
+  return (
+    <CalcShell
+      title="Driving Pressure Calculator"
+      subtitle="CALCULATOR"
+      description="Driving pressure = Plateau Pressure − PEEP. Enter both values to calculate it and see the general interpretation."
+      onExit={onExit}
+      disclaimer="Educational study tool only — not a clinical decision aid. Always interpret alongside full patient context."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+        <CalcInput label="Plateau Pressure, cmH2O" value={pplat} onChange={setPplat} placeholder="e.g. 26" />
+        <CalcInput label="PEEP, cmH2O" value={peep} onChange={setPeep} placeholder="e.g. 8" />
+      </div>
+      <button onClick={calculate} style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        Calculate Driving Pressure
+      </button>
+      {result && !result.error && (
+        <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>DRIVING PRESSURE</p>
+          <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>{result.dp} cmH2O</p>
+          <p style={{ fontSize: 14, lineHeight: 1.5 }}>{result.interpretation}</p>
+        </div>
+      )}
+      {result && result.error && <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>}
+    </CalcShell>
+  );
+}
+
+// ---- P/F Ratio & ARDS Berlin Criteria Calculator ----
+function PFRatioCalculator({ onExit }) {
+  const [pao2, setPao2] = useState("");
+  const [fio2, setFio2] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const p = parseFloat(pao2);
+    const f = parseFloat(fio2);
+    if (isNaN(p) || isNaN(f) || f <= 0 || f > 100) {
+      setResult({ error: "Please enter a valid PaO2 and an FiO2 as a percentage between 1 and 100 (e.g. 40 for 40%)." });
+      return;
+    }
+    const fio2Decimal = f / 100;
+    const ratio = Math.round(p / fio2Decimal);
+    let stage;
+    if (ratio > 300) stage = "Above ARDS threshold (Berlin Criteria requires ≤300 with appropriate PEEP/CPAP and bilateral infiltrates)";
+    else if (ratio > 200) stage = "Mild ARDS (Berlin Criteria: 201–300)";
+    else if (ratio > 100) stage = "Moderate ARDS (Berlin Criteria: 101–200)";
+    else stage = "Severe ARDS (Berlin Criteria: ≤100)";
+    setResult({ ratio, stage });
+  }
+
+  return (
+    <CalcShell
+      title="P/F Ratio & ARDS Severity Calculator"
+      subtitle="CALCULATOR"
+      description="P/F Ratio = PaO2 ÷ FiO2 (as a decimal). Used in the Berlin Criteria to stage ARDS severity."
+      onExit={onExit}
+      disclaimer="Educational study tool only. Real ARDS diagnosis per Berlin Criteria also requires bilateral infiltrates on imaging, onset within 1 week of a known clinical insult, and respiratory failure not fully explained by cardiac failure/fluid overload — this calculator only computes the oxygenation ratio component."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+        <CalcInput label="PaO2, mmHg" value={pao2} onChange={setPao2} placeholder="e.g. 90" />
+        <CalcInput label="FiO2, % (enter as e.g. 40 for 40%)" value={fio2} onChange={setFio2} placeholder="e.g. 60" />
+      </div>
+      <button onClick={calculate} style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        Calculate P/F Ratio
+      </button>
+      {result && !result.error && (
+        <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>P/F RATIO</p>
+          <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>{result.ratio}</p>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>BERLIN CRITERIA STAGE</p>
+          <p style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5 }}>{result.stage}</p>
+        </div>
+      )}
+      {result && result.error && <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>}
+    </CalcShell>
+  );
+}
+
+// ---- Nasal Cannula FiO2 Estimator ----
+function NCFiO2Calculator({ onExit }) {
+  const [flow, setFlow] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const f = parseFloat(flow);
+    if (isNaN(f) || f < 0) {
+      setResult({ error: "Please enter a valid flow rate." });
+      return;
+    }
+    const fio2 = 20 + 4 * f;
+    let note;
+    if (f > 6) note = "Standard nasal cannula is typically not used above ~6 L/min due to patient discomfort and drying of nasal mucosa — flows this high usually call for a different device.";
+    else note = "This is an estimate — actual delivered FiO2 varies with the patient's own breathing pattern (a faster inspiratory flow rate dilutes it further with room air).";
+    setResult({ fio2, note });
+  }
+
+  return (
+    <CalcShell
+      title="Nasal Cannula FiO2 Estimator"
+      subtitle="CALCULATOR"
+      description="Rule-of-thumb formula: FiO2 (%) ≈ 20 + (4 × oxygen flow in L/min). Useful for quickly estimating approximate delivered oxygen concentration."
+      onExit={onExit}
+      disclaimer="This is a rough estimate formula, not a precise or guaranteed value — actual FiO2 delivered by a nasal cannula varies significantly with the patient's respiratory rate and tidal volume, since it's a variable-performance (not fixed-performance) device."
+    >
+      <div style={{ marginBottom: 20 }}>
+        <CalcInput label="Oxygen Flow Rate, L/min" value={flow} onChange={setFlow} placeholder="e.g. 4" />
+      </div>
+      <button onClick={calculate} style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        Estimate FiO2
+      </button>
+      {result && !result.error && (
+        <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>ESTIMATED FiO2</p>
+          <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>~{result.fio2}%</p>
+          <p style={{ fontSize: 13, lineHeight: 1.5, color: "#4A4536" }}>{result.note}</p>
+        </div>
+      )}
+      {result && result.error && <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>}
+    </CalcShell>
   );
 }

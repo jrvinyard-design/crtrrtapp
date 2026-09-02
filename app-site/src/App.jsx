@@ -4586,7 +4586,7 @@ function UpgradeButton() {
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? "Redirecting to checkout…" : "Upgrade to Plus — $19/mo"}
+        {loading ? "Redirecting to checkout…" : "Upgrade to Plus — $24.99/mo"}
       </button>
       {error && (
         <p style={{ color: "#E85D3D", fontSize: 12, marginTop: 8 }}>{error}</p>

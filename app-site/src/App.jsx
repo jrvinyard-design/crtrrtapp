@@ -8301,6 +8301,23 @@ const RESOURCE_TOPICS = [
       { title: "Oxygen Administration: What Is the Best Choice?", source: "Respiratory Therapy (RT Magazine)", url: "https://respiratory-therapy.com/products-treatment/monitoring-treatment/therapy-devices/oxygen-administration-best-choice/" },
     ],
   },
+  {
+    id: "pft",
+    title: "PFT Interpretation",
+    description: "Telling obstructive, restrictive, and mixed patterns apart from spirometry and flow-volume loops.",
+    hasLesson: true,
+    links: [
+      { title: "Pulmonary Function Testing (PFT): Clinical Overview", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/pulmonary-function-testing/" },
+      { title: "A Stepwise Approach to the Interpretation of Pulmonary Function Tests", source: "American Academy of Family Physicians", url: "https://www.aafp.org/pubs/afp/issues/2014/0301/p359.html" },
+    ],
+  },
+  {
+    id: "lung-volumes",
+    title: "Lung Volumes & Capacities",
+    description: "IRV, TV, ERV, RV — and how they combine into IC, FRC, VC, and TLC. A foundational diagram worth knowing cold.",
+    hasLesson: true,
+    links: [],
+  },
 ];
 
 const ABG_LESSON_SLIDES = [
@@ -8359,6 +8376,77 @@ const WAVEFORM_LESSON_SLIDES = [
   },
 ];
 
+const PFT_LESSON_SLIDES = [
+  {
+    title: "The Two Key Numbers",
+    body: "Spirometry interpretation almost always comes down to two values: FVC (total air forcibly exhaled) and the FEV1/FVC ratio (how much of that came out in the first second).",
+    points: ["FVC — Forced Vital Capacity: the total volume exhaled", "FEV1 — volume exhaled in the FIRST second", "FEV1/FVC ratio — the percentage of FVC exhaled in that first second"],
+  },
+  {
+    title: "Obstructive Pattern",
+    body: "Obstructive disease (COPD, asthma) makes it hard to exhale FAST, even if total volume is eventually okay.",
+    points: ["Key finding: LOW FEV1/FVC ratio (typically under 70%)", "FVC may be normal or only mildly reduced", "Think: narrowed airways slow down airflow, but the air still eventually comes out"],
+  },
+  {
+    title: "Restrictive Pattern",
+    body: "Restrictive disease (pulmonary fibrosis, chest wall limitation, neuromuscular weakness) limits how much air the lungs can hold in the first place.",
+    points: ["Key finding: LOW FVC (reduced total volume)", "FEV1/FVC ratio is typically normal or even elevated", "Think: the lung itself (or the ability to expand it) is smaller — what comes out, comes out fine, there's just less of it"],
+  },
+  {
+    title: "Mixed Pattern",
+    body: "Sometimes both processes are happening together — a real diagnostic and exam-trap possibility.",
+    points: ["Both LOW FVC and LOW FEV1/FVC ratio present", "Confirmed with full PFTs including DLCO for a complete differential", "Don't assume one pattern rules out the other — check both numbers independently"],
+  },
+  {
+    title: "Try It: Reading a Result",
+    body: "FEV1 58% predicted, FVC 90% predicted, FEV1/FVC ratio 55%.",
+    points: ["FVC is relatively preserved (90%) → total lung volume is roughly okay", "FEV1/FVC ratio is low (55%, well under 70%) → airflow is significantly obstructed", "Conclusion: Obstructive pattern — consistent with COPD or asthma, not a restrictive process"],
+  },
+];
+
+const LUNG_VOLUMES_LESSON_SLIDES = [
+  {
+    title: "Volumes vs. Capacities",
+    body: "This diagram shows up constantly, and it's simpler than it looks once you know the trick: there are only 4 true volumes. Everything else labeled a 'capacity' is just two or more of those volumes added together.",
+    points: ["4 basic volumes: IRV, TV, ERV, RV", "4 capacities, each built from combining volumes: IC, FRC, VC, TLC", "Master the 4 volumes first — the capacities fall into place from there"],
+    diagram: "lung-volumes",
+  },
+  {
+    title: "Tidal Volume (TV)",
+    body: "The amount of air moved in and out with a normal, relaxed breath — no extra effort in either direction. This is your baseline on the trace: the small, regular waves.",
+    points: ["Normal resting adult TV is roughly 500 mL (about 5-7 mL/kg)", "This is the volume used in minute ventilation and RSBI calculations", "On the diagram: the middle band, right where normal breathing sits"],
+    diagram: "lung-volumes",
+    highlight: "tv",
+  },
+  {
+    title: "Inspiratory Reserve Volume (IRV)",
+    body: "The EXTRA air you can still pull in after a normal tidal inhale, if you inhale as deeply as possible on top of it.",
+    points: ["This is the big rise on the trace — a maximal inhale beyond normal tidal breathing", "IRV sits directly above tidal volume on the diagram", "IRV + TV together make up the Inspiratory Capacity (IC) — more on that shortly"],
+    diagram: "lung-volumes",
+    highlight: "irv",
+  },
+  {
+    title: "Expiratory Reserve Volume (ERV)",
+    body: "The EXTRA air you can still force out after a normal tidal exhale, if you exhale as forcefully as possible beyond it.",
+    points: ["This is the deep drop on the trace — a maximal forced exhale beyond normal tidal breathing", "ERV sits directly below tidal volume on the diagram", "ERV + RV together make up the Functional Residual Capacity (FRC)"],
+    diagram: "lung-volumes",
+    highlight: "erv",
+  },
+  {
+    title: "Residual Volume (RV)",
+    body: "The air that's physically impossible to exhale, no matter how hard you try — it keeps the alveoli from fully collapsing.",
+    points: ["RV can NOT be measured by spirometry alone — it requires plethysmography or gas dilution methods", "This is why FRC and TLC (both of which include RV) also can't be measured by spirometry alone", "RV is the floor of the diagram — the only volume you can never exhale"],
+    diagram: "lung-volumes",
+    highlight: "rv",
+  },
+  {
+    title: "Putting It Together: The Capacities",
+    body: "Every capacity is just an addition problem — two or more volumes stacked together.",
+    points: ["Inspiratory Capacity (IC) = TV + IRV", "Functional Residual Capacity (FRC) = ERV + RV — the resting volume left in the lungs after a normal exhale", "Vital Capacity (VC) = IRV + TV + ERV — the maximum you can voluntarily move, top to bottom", "Total Lung Capacity (TLC) = VC + RV — absolutely everything the lungs can hold"],
+    diagram: "lung-volumes",
+  },
+];
+
 // ---- Calculator registry: add new calculators here as they're built ----
 const CALCULATORS = [
   {
@@ -8381,6 +8469,16 @@ const CALCULATORS = [
     title: "Nasal Cannula FiO2 Estimator",
     description: "Enter oxygen flow rate (L/min) to estimate the approximate delivered FiO2 on a standard nasal cannula.",
   },
+  {
+    id: "rsbi",
+    title: "RSBI Calculator",
+    description: "Enter respiratory rate and tidal volume to calculate the Rapid Shallow Breathing Index for weaning readiness.",
+  },
+  {
+    id: "minute-vent",
+    title: "Minute Ventilation Calculator",
+    description: "Enter respiratory rate and tidal volume to calculate minute ventilation.",
+  },
 ];
 
 function ResourcesHub() {
@@ -8393,6 +8491,12 @@ function ResourcesHub() {
   if (activeLesson === "waveforms") {
     return <LessonViewer slides={WAVEFORM_LESSON_SLIDES} title="Ventilator Waveforms" onExit={() => setActiveLesson(null)} />;
   }
+  if (activeLesson === "pft") {
+    return <LessonViewer slides={PFT_LESSON_SLIDES} title="PFT Interpretation" onExit={() => setActiveLesson(null)} />;
+  }
+  if (activeLesson === "lung-volumes") {
+    return <LessonViewer slides={LUNG_VOLUMES_LESSON_SLIDES} title="Lung Volumes & Capacities" onExit={() => setActiveLesson(null)} />;
+  }
   if (activeCalculator === "abg") {
     return <ABGCalculator onExit={() => setActiveCalculator(null)} />;
   }
@@ -8404,6 +8508,12 @@ function ResourcesHub() {
   }
   if (activeCalculator === "nc-fio2") {
     return <NCFiO2Calculator onExit={() => setActiveCalculator(null)} />;
+  }
+  if (activeCalculator === "rsbi") {
+    return <RSBICalculator onExit={() => setActiveCalculator(null)} />;
+  }
+  if (activeCalculator === "minute-vent") {
+    return <MinuteVentCalculator onExit={() => setActiveCalculator(null)} />;
   }
 
   return (
@@ -8490,7 +8600,8 @@ function LessonViewer({ slides, title, onExit }) {
       <div style={{ background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 10, padding: "32px 30px", minHeight: 320 }}>
         <h2 className="serif" style={{ fontSize: 24, fontWeight: 600, marginBottom: 16 }}>{slide.title}</h2>
         <p style={{ fontSize: 16, lineHeight: 1.65, color: "#2A2620", marginBottom: 24 }}>{slide.body}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {slide.diagram === "lung-volumes" && <LungVolumesDiagram highlight={slide.highlight} />}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: slide.diagram ? 20 : 0 }}>
           {slide.points.map((point, i) => (
             <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#F7F5F0", borderRadius: 6, padding: "12px 14px" }}>
               <span style={{ fontSize: 15, lineHeight: 1.5 }}>{point}</span>
@@ -8683,6 +8794,88 @@ function CalcInput({ label, value, onChange, placeholder }) {
         style={{ width: "100%", border: "1px solid #DCD7C9", borderRadius: 4, padding: "10px 12px", fontSize: 15, fontFamily: "inherit", boxSizing: "border-box" }}
       />
     </div>
+  );
+}
+
+// ---- Original SVG diagram: lung volumes & capacities, with optional highlight ----
+function LungVolumesDiagram({ highlight }) {
+  // Generate a smooth breathing-trace path: tidal cycles, one deep breath, tidal cycles again.
+  function volumeAt(x) {
+    const tidalMid = 33.5, tidalAmp = 3.5;
+    if (x < 220) {
+      return tidalMid + tidalAmp * Math.sin((x - 60) * (Math.PI / 20));
+    }
+    if (x < 260) {
+      const t = (x - 220) / 40;
+      const ease = (1 - Math.cos(t * Math.PI)) / 2;
+      return 30 + (80 - 30) * ease;
+    }
+    if (x < 320) {
+      const t = (x - 260) / 60;
+      const ease = (1 - Math.cos(t * Math.PI)) / 2;
+      return 80 + (15 - 80) * ease;
+    }
+    if (x < 380) {
+      const t = (x - 320) / 60;
+      const ease = (1 - Math.cos(t * Math.PI)) / 2;
+      return 15 + (tidalMid - 15) * ease;
+    }
+    return tidalMid + tidalAmp * Math.sin((x - 380) * (Math.PI / 20));
+  }
+
+  const points = [];
+  for (let x = 60; x <= 500; x += 4) points.push([x, volumeAt(x)]);
+  const toY = (v) => 380 - (v / 80) * 340;
+  const pathD = points.map(([x, v], i) => `${i === 0 ? "M" : "L"} ${x} ${toY(v).toFixed(1)}`).join(" ");
+
+  const rowStyle = (id) => ({
+    fill: highlight === id ? "#E85D3D22" : "transparent",
+  });
+  const labelStyle = (id) => ({
+    fontSize: 12,
+    fontWeight: highlight === id ? 700 : 500,
+    fill: highlight === id ? "#E85D3D" : "#1B2A4A",
+  });
+
+  return (
+    <svg viewBox="0 0 700 400" style={{ width: "100%", height: "auto", background: "#F7F5F0", borderRadius: 8 }}>
+      {/* Reference lines */}
+      {[80, 37, 30, 15, 0].map((v) => (
+        <line key={v} x1={55} x2={520} y1={toY(v)} y2={toY(v)} stroke="#DCD7C9" strokeWidth={1} />
+      ))}
+      {[80, 37, 30, 15, 0].map((v) => (
+        <text key={v} x={45} y={toY(v) + 4} fontSize={11} fill="#8A8578" textAnchor="end">{v}</text>
+      ))}
+      <text x={20} y={200} fontSize={12} fill="#4A4536" fontWeight={700} textAnchor="middle" transform="rotate(-90 20 200)">Volume</text>
+
+      {/* Breathing trace */}
+      <path d={pathD} fill="none" stroke="#1B2A4A" strokeWidth={2.5} />
+
+      {/* Right-side volume/capacity blocks */}
+      <g>
+        <rect x={540} y={toY(80)} width={70} height={toY(37) - toY(80)} style={rowStyle("irv")} />
+        <text x={575} y={(toY(80) + toY(37)) / 2 + 4} style={labelStyle("irv")} textAnchor="middle">IRV</text>
+
+        <rect x={540} y={toY(37)} width={70} height={toY(30) - toY(37)} style={rowStyle("tv")} />
+        <text x={575} y={(toY(37) + toY(30)) / 2 + 4} style={labelStyle("tv")} textAnchor="middle">TV</text>
+
+        <rect x={540} y={toY(30)} width={70} height={toY(15) - toY(30)} style={rowStyle("erv")} />
+        <text x={575} y={(toY(30) + toY(15)) / 2 + 4} style={labelStyle("erv")} textAnchor="middle">ERV</text>
+
+        <rect x={540} y={toY(15)} width={70} height={toY(0) - toY(15)} style={rowStyle("rv")} />
+        <text x={575} y={(toY(15) + toY(0)) / 2 + 4} style={labelStyle("rv")} textAnchor="middle">RV</text>
+
+        {/* Capacities column */}
+        <rect x={615} y={toY(80)} width={75} height={toY(30) - toY(80)} style={rowStyle("ic")} />
+        <text x={652} y={(toY(80) + toY(30)) / 2 + 4} style={labelStyle("ic")} textAnchor="middle">IC</text>
+
+        <rect x={615} y={toY(30)} width={75} height={toY(0) - toY(30)} style={rowStyle("frc")} />
+        <text x={652} y={(toY(30) + toY(0)) / 2 + 4} style={labelStyle("frc")} textAnchor="middle">FRC</text>
+      </g>
+
+      <text x={575} y={16} fontSize={10} fill="#8A8578" textAnchor="middle">VOLUMES</text>
+      <text x={652} y={16} fontSize={10} fill="#8A8578" textAnchor="middle">CAPACITIES</text>
+    </svg>
   );
 }
 
@@ -8962,5 +9155,102 @@ function RTEPractice({ subscribed, user }) {
         </button>
       )}
     </main>
+  );
+}
+
+// ---- RSBI (Rapid Shallow Breathing Index) Calculator ----
+function RSBICalculator({ onExit }) {
+  const [rr, setRr] = useState("");
+  const [vt, setVt] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const rrNum = parseFloat(rr);
+    const vtNum = parseFloat(vt);
+    if (isNaN(rrNum) || isNaN(vtNum) || vtNum <= 0) {
+      setResult({ error: "Please enter valid numbers for both values (tidal volume must be greater than 0)." });
+      return;
+    }
+    const vtLiters = vtNum / 1000; // convert mL to L
+    const rsbi = Math.round(rrNum / vtLiters);
+    let interpretation;
+    if (rsbi < 105) interpretation = "Below 105 — generally considered a favorable predictor for successful weaning/extubation.";
+    else interpretation = "105 or above — associated with a higher risk of weaning failure. Consider whether the patient is truly ready for a spontaneous breathing trial or extubation.";
+    setResult({ rsbi, interpretation });
+  }
+
+  return (
+    <CalcShell
+      title="RSBI Calculator"
+      subtitle="CALCULATOR"
+      description="RSBI (Rapid Shallow Breathing Index) = Respiratory Rate ÷ Tidal Volume (in liters). Used as a predictor of weaning/extubation readiness."
+      onExit={onExit}
+      disclaimer="Educational study tool only — not a clinical decision aid. RSBI is one data point among many (mental status, hemodynamics, oxygenation, secretions, etc.) used in real weaning assessments."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+        <CalcInput label="Respiratory Rate, breaths/min" value={rr} onChange={setRr} placeholder="e.g. 28" />
+        <CalcInput label="Tidal Volume, mL" value={vt} onChange={setVt} placeholder="e.g. 280" />
+      </div>
+      <button onClick={calculate} style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        Calculate RSBI
+      </button>
+      {result && !result.error && (
+        <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>RSBI</p>
+          <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>{result.rsbi} breaths/min/L</p>
+          <p style={{ fontSize: 14, lineHeight: 1.5 }}>{result.interpretation}</p>
+        </div>
+      )}
+      {result && result.error && <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>}
+    </CalcShell>
+  );
+}
+
+// ---- Minute Ventilation Calculator ----
+function MinuteVentCalculator({ onExit }) {
+  const [rr, setRr] = useState("");
+  const [vt, setVt] = useState("");
+  const [result, setResult] = useState(null);
+
+  function calculate() {
+    const rrNum = parseFloat(rr);
+    const vtNum = parseFloat(vt);
+    if (isNaN(rrNum) || isNaN(vtNum)) {
+      setResult({ error: "Please enter valid numbers for both values." });
+      return;
+    }
+    const vtLiters = vtNum / 1000; // convert mL to L
+    const ve = Math.round(rrNum * vtLiters * 10) / 10;
+    let note;
+    if (ve < 5) note = "Below the typical resting range (roughly 5-10 L/min) — could reflect hypoventilation depending on the clinical picture.";
+    else if (ve > 10) note = "Above the typical resting range (roughly 5-10 L/min) — could reflect increased ventilatory demand (fever, sepsis, acidosis, anxiety, etc.) depending on the clinical picture.";
+    else note = "Within the typical resting range of roughly 5-10 L/min for an adult.";
+    setResult({ ve, note });
+  }
+
+  return (
+    <CalcShell
+      title="Minute Ventilation Calculator"
+      subtitle="CALCULATOR"
+      description="Minute Ventilation (V̇E) = Respiratory Rate × Tidal Volume. The total volume of gas moved in and out of the lungs per minute."
+      onExit={onExit}
+      disclaimer="Educational study tool only. This calculates total (not alveolar) minute ventilation — it doesn't subtract dead space, which alveolar ventilation calculations account for separately."
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+        <CalcInput label="Respiratory Rate, breaths/min" value={rr} onChange={setRr} placeholder="e.g. 14" />
+        <CalcInput label="Tidal Volume, mL" value={vt} onChange={setVt} placeholder="e.g. 500" />
+      </div>
+      <button onClick={calculate} style={{ width: "100%", background: "#1B2A4A", color: "#F7F5F0", border: "none", borderRadius: 3, padding: "12px 0", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        Calculate Minute Ventilation
+      </button>
+      {result && !result.error && (
+        <div style={{ marginTop: 22, background: "#F7F5F0", borderRadius: 8, padding: "20px 22px" }}>
+          <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>MINUTE VENTILATION</p>
+          <p style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: "#E85D3D" }}>{result.ve} L/min</p>
+          <p style={{ fontSize: 14, lineHeight: 1.5 }}>{result.note}</p>
+        </div>
+      )}
+      {result && result.error && <p style={{ color: "#E85D3D", fontSize: 13, marginTop: 16 }}>{result.error}</p>}
+    </CalcShell>
   );
 }

@@ -7408,6 +7408,7 @@ export default function RTBoardPrep() {
     if (typeof window !== "undefined") {
       const tryParam = new URLSearchParams(window.location.search).get("try");
       if (tryParam === "rte2027") return "rte2027";
+      if (tryParam === "resources") return "resources";
     }
     return "home";
   });

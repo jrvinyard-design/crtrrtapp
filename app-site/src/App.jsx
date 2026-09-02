@@ -7404,7 +7404,13 @@ const LEVEL_LABEL = { recall: "Recall", application: "Application", analysis: "A
 const LEVEL_COLOR = { recall: "#8A8578", application: "#C9A227", analysis: "#E85D3D" };
 
 export default function RTBoardPrep() {
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreen] = useState(() => {
+    if (typeof window !== "undefined") {
+      const tryParam = new URLSearchParams(window.location.search).get("try");
+      if (tryParam === "rte2027") return "rte2027";
+    }
+    return "home";
+  });
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState(null);
   const [revealed, setRevealed] = useState(false);

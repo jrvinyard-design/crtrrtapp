@@ -4861,6 +4861,7 @@ const RESOURCE_TOPICS = [
     description: "The single most-tested clinical skill on the exam — read any blood gas with a repeatable method.",
     hasLesson: true,
     links: [
+      { title: "ABG Interpretation: The Complete Guide", source: "CRT/RRT Board Prep", url: "https://crtrrtboardprep.com/blog/abg-interpretation-complete-guide.html" },
       { title: "ABG Interpretation Made Easy: A Step-by-Step Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-interpretation/" },
       { title: "Arterial Blood Gas (ABG) Tips for the Respiratory Board Exam", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-exam-tips/" },
       { title: "ABG Oxygenation Interpretation: PaO2, SaO2, and Hypoxemia", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-oxygenation-interpretation/" },

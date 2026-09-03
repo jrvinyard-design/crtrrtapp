@@ -8275,10 +8275,6 @@ const RESOURCE_TOPICS = [
     hasLesson: true,
     links: [
       { title: "ABG Interpretation: The Complete Guide", source: "CRT/RRT Board Prep", url: "https://crtrrtboardprep.com/blog/abg-interpretation-complete-guide.html" },
-      { title: "ABG Interpretation Made Easy: A Step-by-Step Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-interpretation/" },
-      { title: "Arterial Blood Gas (ABG) Tips for the Respiratory Board Exam", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-exam-tips/" },
-      { title: "ABG Oxygenation Interpretation: PaO2, SaO2, and Hypoxemia", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/abg-oxygenation-interpretation/" },
-      { title: "Adjusting Ventilator Settings Based on ABG Results", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/adjusting-ventilator-settings-abg-results/" },
     ],
   },
   {
@@ -8287,7 +8283,6 @@ const RESOURCE_TOPICS = [
     description: "Reading pressure, flow, and volume waveforms to catch auto-PEEP, asynchrony, and resistance problems.",
     hasLesson: true,
     links: [
-      { title: "Ventilator Waveforms and Graphics: Interpretation Guide", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/ventilator-waveforms/" },
       { title: "5.1 Waveforms — Respiratory Therapy (open textbook)", source: "WTCS Open / Pressbooks", url: "https://wtcs.pressbooks.pub/respiratorysurvey/chapter/5-1-waveforms/" },
     ],
   },
@@ -8297,7 +8292,6 @@ const RESOURCE_TOPICS = [
     description: "FiO2 ranges, flow rates, and how to choose the right device for a patient's oxygenation need.",
     hasLesson: false,
     links: [
-      { title: "Oxygen Flow Rate and Fraction of Inspired Oxygen (FiO2)", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/oxygen-flow-rate-fio2/" },
       { title: "Oxygen Administration: What Is the Best Choice?", source: "Respiratory Therapy (RT Magazine)", url: "https://respiratory-therapy.com/products-treatment/monitoring-treatment/therapy-devices/oxygen-administration-best-choice/" },
     ],
   },
@@ -8307,7 +8301,6 @@ const RESOURCE_TOPICS = [
     description: "Telling obstructive, restrictive, and mixed patterns apart from spirometry and flow-volume loops.",
     hasLesson: true,
     links: [
-      { title: "Pulmonary Function Testing (PFT): Clinical Overview", source: "Respiratory Therapy Zone", url: "https://www.respiratorytherapyzone.com/pulmonary-function-testing/" },
       { title: "A Stepwise Approach to the Interpretation of Pulmonary Function Tests", source: "American Academy of Family Physicians", url: "https://www.aafp.org/pubs/afp/issues/2014/0301/p359.html" },
     ],
   },

@@ -7559,7 +7559,7 @@ export default function RTBoardPrep() {
       {screen === "login" && <AuthScreen />}
       {screen === "account" && <AccountScreen user={user} subscribed={subscribed} onBack={() => setScreen("home")} />}
       {screen === "cse" && <CSESimulation />}
-      {screen === "resources" && <ResourcesHub />}
+      {screen === "resources" && <ResourcesHub subscribed={subscribed} />}
       {screen === "rte2027" && <RTEPractice subscribed={subscribed} user={user} />}
 
       {/* Support chatbot */}
@@ -8262,11 +8262,30 @@ function AccountScreen({ user, subscribed, onBack }) {
           )}
         </>
       )}
+
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: "1px solid #DCD7C9" }}>
+        <p className="mono" style={{ fontSize: 11, color: "#8A8578", marginBottom: 6 }}>QUESTIONS OR SUGGESTIONS?</p>
+        <a href="mailto:support@crtrrtboardprep.com" style={{ fontSize: 14, color: "#1B2A4A", textDecoration: "underline" }}>
+          support@crtrrtboardprep.com
+        </a>
+      </div>
     </main>
   );
 }
 
 // ---- Resources Hub: curated links + interactive learning lessons ----
+// ---- Premium (Plus-only) resources: curated videos + downloadable PDF guides ----
+const PREMIUM_VIDEOS = [
+  { title: "Ventilator Waveforms for the RRT Board Exam", source: "YouTube", url: "https://www.youtube.com/watch?v=BhCY970Ya-s", description: "Machine vs. patient-triggered breaths, flow starvation, secretions, and prolonged expiration." },
+  { title: "Ventilator Management: ABG Results Adjustments (Practice Question)", source: "YouTube", url: "https://www.youtube.com/watch?v=MzN8AYNhyg0", description: "A worked practice question on adjusting ventilator settings based on ABG results." },
+  { title: "Ventilator Management with a Dash of ABG Interpretation", source: "YouTube", url: "https://www.youtube.com/watch?v=yuh79foxdok", description: "Ties ABG interpretation directly into real ventilator management decisions." },
+  { title: "Pulmonary Function Test (PFT) Results Interpretation — MedCram", source: "YouTube (MedCram)", url: "https://www.youtube.com/playlist?list=PLQ_IRFkDInv8A99vA70UQRB3Z2kNQ02_V", description: "A full course by Dr. Roger Seheult on interpreting PFTs, from MedCram — a widely respected medical education channel." },
+];
+
+const PREMIUM_PDFS = [
+  { title: "ABG Interpretation — Complete Study Guide (PDF)", description: "The full method, all four disorders with worked examples, hypoxemia grading, sampling technique — formatted for printing or offline study.", url: "/resources/abg-interpretation-study-guide.pdf" },
+];
+
 const RESOURCE_TOPICS = [
   {
     id: "abg",
@@ -8474,7 +8493,7 @@ const CALCULATORS = [
   },
 ];
 
-function ResourcesHub() {
+function ResourcesHub({ subscribed }) {
   const [activeLesson, setActiveLesson] = useState(null);
   const [activeCalculator, setActiveCalculator] = useState(null);
 
@@ -8532,6 +8551,37 @@ function ResourcesHub() {
           </button>
         ))}
       </div>
+
+      {/* ---- Premium Resources subsection: videos + PDF guides, Plus-only ---- */}
+      <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#E85D3D", fontWeight: 700, marginBottom: 14 }}>PREMIUM RESOURCES — PLUS</p>
+      {subscribed ? (
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+            {PREMIUM_VIDEOS.map((v, i) => (
+              <a key={i} href={v.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", background: "#FFFFFF", border: "1px solid #DCD7C9", borderRadius: 8, padding: "16px 18px", textDecoration: "none", color: "#1B2A4A" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, display: "block", marginBottom: 4 }}>{v.title}</span>
+                <span style={{ fontSize: 13, color: "#4A4536", display: "block", marginBottom: 4 }}>{v.description}</span>
+                <span className="mono" style={{ fontSize: 11, color: "#8A8578" }}>{v.source}</span>
+              </a>
+            ))}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {PREMIUM_PDFS.map((p, i) => (
+              <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" download style={{ display: "block", background: "#1B2A4A0D", border: "1px solid #1B2A4A", borderRadius: 8, padding: "16px 18px", textDecoration: "none", color: "#1B2A4A" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, display: "block", marginBottom: 4 }}>⬇ {p.title}</span>
+                <span style={{ fontSize: 13, color: "#4A4536" }}>{p.description}</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: "#FFFFFF", border: "1px dashed #DCD7C9", borderRadius: 8, padding: "24px 22px", marginBottom: 40, textAlign: "center" }}>
+          <p style={{ fontSize: 14, color: "#4A4536", marginBottom: 16 }}>
+            Curated video lessons and downloadable PDF study guides are part of CRT/RRT Board Prep Plus.
+          </p>
+          <UpgradeButton />
+        </div>
+      )}
 
       {/* ---- Study Topics subsection ---- */}
       <p className="mono" style={{ fontSize: 12, letterSpacing: "0.08em", color: "#8A8578", fontWeight: 700, marginBottom: 14 }}>STUDY TOPICS</p>
